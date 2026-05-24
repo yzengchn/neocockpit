@@ -1,0 +1,192 @@
+import React, { useEffect, useRef, useState } from 'react';
+import { Row, Col, Spin, Empty } from 'antd';
+import { TaskCard } from './TaskCard';
+import { Task, TaskType } from '@/types/task';
+
+
+
+
+interface TaskListProps {
+  tasks: Task[];
+  loading: boolean;
+  onTaskClick: (taskId: string) => void;
+  activeFilter: TaskFilter;
+  counts: Record<TaskFilter, number>;
+  hasMore: boolean;
+  loadingMore: boolean;
+  onFilterChange: (filter: TaskFilter) => void;
+  onLoadMore: () => void;
+}
+
+export type TaskFilter = 'all' | 'popular' | TaskType.THEME | TaskType.DIGITAL_HUMAN | TaskType.DIY;
+
+export const TaskList: React.FC<TaskListProps> = ({
+  tasks,
+  loading,
+  onTaskClick,
+  activeFilter,
+  counts,
+  hasMore,
+  loadingMore,
+  onFilterChange,
+  onLoadMore,
+}) => {
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const [scrollArmed, setScrollArmed] = useState(false);
+
+  const filterOptions: Array<{
+    key: TaskFilter;
+    label: string;
+    count: number;
+    accent: string;
+  }> = [
+    { key: TaskType.THEME, label: '车载主题', count: counts[TaskType.THEME], accent: '#22d3ee' },
+    { key: TaskType.DIGITAL_HUMAN, label: '数字人', count: counts[TaskType.DIGITAL_HUMAN], accent: '#a78bfa' },
+    { key: TaskType.DIY, label: 'DIY生图', count: counts[TaskType.DIY], accent: '#f59e0b' },
+    { key: 'all', label: '任务', count: counts.all, accent: '#6366f1' },
+  ];
+
+  useEffect(() => {
+    const node = loadMoreRef.current;
+    if (!node || !hasMore) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (scrollArmed && entry.isIntersecting && !loadingMore) {
+          onLoadMore();
+        }
+      },
+      { rootMargin: '160px 0px' },
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, onLoadMore, scrollArmed]);
+
+  useEffect(() => {
+    setScrollArmed(false);
+    const armLoadMore = () => setScrollArmed(true);
+    window.addEventListener('scroll', armLoadMore, { passive: true, once: true });
+    return () => window.removeEventListener('scroll', armLoadMore);
+  }, [activeFilter]);
+
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: '80px 0' }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{
+        marginBottom: 22,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 16,
+        flexWrap: 'wrap',
+      }}>
+        <div style={{ display: 'flex', gap: 0 }}>
+          <button
+            type="button"
+            onClick={() => onFilterChange('all' as TaskFilter)}
+            style={{
+              color: activeFilter === 'all' ? '#fff' : 'var(--c-text-secondary)',
+              fontSize: 14,
+              fontWeight: 700,
+              padding: '6px 18px',
+              minHeight: 32,
+              borderRadius: 'var(--radius-sm) 0 0 var(--radius-sm)',
+              background: activeFilter === 'all' ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.06)',
+              border: activeFilter === 'all' ? '1px solid rgba(99,102,241,0.5)' : '1px solid var(--c-border)',
+              borderRight: 'none',
+              boxShadow: activeFilter === 'all' ? '0 0 18px rgba(99,102,241,0.15)' : 'none',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-mono)',
+              letterSpacing: 0,
+              transition: 'border-color 0.25s var(--ease-out), background 0.25s var(--ease-out), color 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out)',
+              whiteSpace: 'nowrap',
+            }}
+          >所有任务</button>
+          <button
+            type="button"
+            onClick={() => onFilterChange('popular' as TaskFilter)}
+            style={{
+              color: activeFilter === 'popular' ? '#fff' : 'var(--c-text-secondary)',
+              fontSize: 14,
+              fontWeight: 700,
+              padding: '6px 18px',
+              minHeight: 32,
+              borderRadius: '0 var(--radius-sm) var(--radius-sm) 0',
+              background: activeFilter === 'popular' ? 'rgba(239,68,68,0.15)' : 'rgba(99,102,241,0.06)',
+              border: activeFilter === 'popular' ? '1px solid rgba(239,68,68,0.5)' : '1px solid var(--c-border)',
+              boxShadow: activeFilter === 'popular' ? '0 0 18px rgba(239,68,68,0.15)' : 'none',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-mono)',
+              letterSpacing: 0,
+              transition: 'border-color 0.25s var(--ease-out), background 0.25s var(--ease-out), color 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out)',
+              whiteSpace: 'nowrap',
+            }}
+          >最受欢迎</button>
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end' }}>
+          {filterOptions.map((option) => {
+            const active = activeFilter === option.key;
+            return (
+              <button
+                key={option.key}
+                type="button"
+                onClick={() => onFilterChange(option.key)}
+                style={{
+                  color: active ? '#fff' : 'var(--c-text-secondary)',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  padding: '6px 14px',
+                  minHeight: 32,
+                  borderRadius: 'var(--radius-sm)',
+                  background: active ? `${option.accent}22` : 'rgba(99,102,241,0.06)',
+                  border: active ? `1px solid ${option.accent}88` : '1px solid var(--c-border)',
+                  boxShadow: active ? `0 0 18px ${option.accent}24` : 'none',
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-mono)',
+                  letterSpacing: 0,
+                  transition: 'border-color 0.25s var(--ease-out), background 0.25s var(--ease-out), color 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out)',
+                  whiteSpace: 'nowrap',
+                }}
+                aria-pressed={active}
+              >
+                <span style={{ color: active ? option.accent : 'var(--c-text)', marginRight: 4 }}>
+                  {option.count}
+                </span>
+                个{option.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      {tasks.length === 0 ? (
+        <Empty
+          description={
+            <span style={{ color: 'var(--c-text-muted)', fontSize: 14, letterSpacing: 0 }}>
+              {counts.all === 0 ? '暂无任务，快来创建第一个' : '当前类型暂无任务'}
+            </span>
+          }
+          style={{ padding: '80px 0' }}
+        />
+      ) : (
+        <>
+          <Row gutter={[16, 16]}>
+            {tasks.map((task, i) => (
+              <Col key={task.id} xs={24} sm={12} md={8} lg={6}
+                style={{ animation: `fadeInUp 0.4s var(--ease-out) ${Math.min(i, 11) * 0.04}s both` }}>
+                <TaskCard task={task} onClick={onTaskClick} showLikes={activeFilter === "popular"} />
+              </Col>
+            ))}
+          </Row>
+        </>
+      )}
+    </div>
+  );
+};
