@@ -1,0 +1,680 @@
+import React, { useState, useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Card, Row, Col, Typography, Tag, Button, Spin, Progress, Image, message } from 'antd';
+import { ArrowLeftOutlined, DownloadOutlined, SkinOutlined, AppstoreOutlined, FileTextOutlined, RedoOutlined, HeartFilled, HeartOutlined, PictureOutlined } from '@ant-design/icons';
+import { LogViewer } from '@/components/TaskDetail/LogViewer';
+import { ImageBlock } from '@/components/TaskDetail/ImageBlock';
+import { BuildTreeViewer } from '@/components/BuildTree';
+import { ImagePreview } from '@/components/ImagePreview';
+import { Portrait3DViewer } from '@/components/Portrait3DViewer';
+import { taskApi, userApi } from '@/services/api';
+import { useIdleDetector } from '@/hooks/useIdleDetector';
+import { isUserLoggedIn } from '@/services/api';
+import { TaskStatus, TaskType, isActiveTaskStatus, BuildTree } from '@/types/task';
+import { statusConfig } from '@/constants/status';
+import { glassCardOverflow } from '@/constants/styles';
+
+const { Text, Paragraph } = Typography;
+
+export const TaskDetailPage: React.FC = () => {
+  const { taskId } = useParams<{ taskId: string }>();
+  const navigate = useNavigate();
+  const [selectedImagePath, setSelectedImagePath] = useState<string>();
+  const [selectedDirectory, setSelectedDirectory] = useState<string>();
+  const [previewViewMode, setPreviewViewMode] = useState<'single' | 'grid'>('single');
+  const [downloading, setDownloading] = useState(false);
+  const { isIdle } = useIdleDetector();
+
+  const queryClient = useQueryClient();
+
+  const retryMutation = useMutation({
+    mutationFn: () => taskApi.retryTask(taskId!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
+      queryClient.invalidateQueries({ queryKey: ['fileTree', taskId] });
+    },
+  });
+
+  const likeMutation = useMutation({
+    mutationFn: () => taskApi.likeTask(taskId!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['myLikedTaskIds'] });
+    },
+    onError: (err: any) => {
+      if (err?.response?.status === 401) {
+        message.warning('请先登录后再点赞');
+      } else if (err?.response?.status === 409) {
+        message.info('你已经点赞过该任务');
+      } else {
+        message.error('点赞失败，请稍后再试');
+      }
+    },
+  });
+
+  const { data: likedTaskIds } = useQuery({
+    queryKey: ['myLikedTaskIds'],
+    queryFn: () => taskApi.listMyLikedTaskIds(),
+    enabled: isUserLoggedIn(),
+    staleTime: 60_000,
+  });
+
+  const { data: creditPrices } = useQuery({
+    queryKey: ['credit-prices'],
+    queryFn: () => userApi.getCreditPrices(),
+    staleTime: 60_000,
+  });
+
+  const { } = useQuery({
+    queryKey: ['my-credits'],
+    queryFn: () => userApi.getCredits(),
+    enabled: isUserLoggedIn(),
+    staleTime: 10_000,
+  });
+
+  const likedByMe = !!taskId && (likedTaskIds?.includes(taskId) ?? false);
+
+  const { data: task, isLoading } = useQuery({
+    queryKey: ['task', taskId],
+    queryFn: () => taskApi.getTask(taskId!),
+    enabled: !!taskId,
+    refetchInterval: isIdle ? false : (query) =>
+      isActiveTaskStatus(query.state.data?.status) ? 2000 : false,
+  });
+
+  // Fetch file tree by scanning the output directory directly
+  const { data: fileTree } = useQuery<BuildTree>({
+    queryKey: ['fileTree', taskId],
+    queryFn: () => taskApi.getFileTree(taskId!),
+    enabled: !!taskId && task?.status === TaskStatus.COMPLETED,
+  });
+
+  // Collect all image paths from fileTree — store raw API paths (no token appended yet);
+  // toResourceUrl is applied later in ImagePreview, ensuring regex matches the .ext at end of path.
+  const allBuildImages = useMemo(() => {
+    if (!fileTree || task?.status !== TaskStatus.COMPLETED) return undefined;
+    const imgs: Array<{ name: string; path: string }> = [];
+    const collect = (node: any, prefix = '') => {
+      if (!node) return;
+      for (const [k, v] of Object.entries(node)) {
+        if (v && typeof v === 'object' && 'path' in v) {
+          const rawPath = String((v as any).path);
+          if (/\.(png|jpg|jpeg|gif|webp|svg)$/i.test(rawPath)) {
+            imgs.push({ name: prefix ? `${prefix}/${k}` : k, path: rawPath });
+          }
+        } else if (v && typeof v === 'object') {
+          collect(v, prefix ? `${prefix}/${k}` : k);
+        }
+      }
+    };
+    collect(fileTree);
+    return imgs.length > 0 ? imgs : undefined;
+  }, [fileTree, task?.status]);
+
+  const filteredBuildImages = useMemo(() => {
+    if (!allBuildImages) return undefined;
+    if (!selectedDirectory) return allBuildImages;
+    const prefix = selectedDirectory + '/';
+    const filtered = allBuildImages.filter(img => img.name.startsWith(prefix));
+    return filtered;
+  }, [allBuildImages, selectedDirectory]);
+
+  React.useEffect(() => {
+    if (selectedImagePath) return;
+    if (task?.task_type === TaskType.DIGITAL_HUMAN) {
+      if (task.avatar_image_url) { setSelectedImagePath(task.avatar_image_url); return; }
+    } else {
+      if (task?.background_image_url) { setSelectedImagePath(task.background_image_url); return; }
+    }
+    if (task?.preview_image_url) { setSelectedImagePath(task.preview_image_url); return; }
+    if (fileTree && task?.status === TaskStatus.COMPLETED) {
+      const findFirstImage = (tree: any): string | undefined => {
+        for (const [_k, v] of Object.entries(tree)) {
+          if (v && typeof v === 'object') {
+            if ('path' in v) {
+              const rawPath = String((v as any).path);
+              if (/\.(png|jpg|jpeg|gif|webp|svg)$/i.test(rawPath)) return rawPath;
+            } else {
+              const found = findFirstImage(v);
+              if (found) return found;
+            }
+          }
+        }
+      };
+      const first = findFirstImage(fileTree);
+      if (first) setSelectedImagePath(first);
+    }
+  }, [task?.background_image_url, task?.avatar_image_url, task?.preview_image_url, fileTree, task?.status]);
+
+  const handleSelectFile = (path: string, isDirectory: boolean) => {
+    if (isDirectory) {
+      setSelectedDirectory(path);
+      setPreviewViewMode('grid');
+      setSelectedImagePath(undefined);
+    } else {
+      const parentDir = path.includes('/') ? path.substring(0, path.lastIndexOf('/')) : '';
+      setSelectedDirectory(parentDir);
+      setSelectedImagePath(path);
+      setPreviewViewMode('single');
+    }
+  };
+
+  if (isLoading || !task) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
+
+  const dh = task.task_type === TaskType.DIGITAL_HUMAN;
+  const diy = task.task_type === TaskType.DIY;
+  const wallpaper = task.task_type === TaskType.WALLPAPER;
+  const cfg = statusConfig[task.status] || statusConfig[TaskStatus.QUEUED];
+  const isTaskActive = isActiveTaskStatus(task.status);
+  const portraitMeshUrl = dh && task.status === TaskStatus.COMPLETED
+    ? `/api/resource/${task.id}/product/mesh/portrait_3d_mesh.json`
+    : undefined;
+
+  const renderPromptBlock = (
+    key: string,
+    icon: React.ReactNode,
+    label: string,
+    text: string,
+    rgb: string,
+    barGradient: string,
+    iconColor: string,
+  ) => (
+    <div key={key} style={{
+      position: "relative",
+      borderRadius: "var(--radius-md)",
+      background: `linear-gradient(135deg, rgba(${rgb},0.06) 0%, rgba(${rgb},0.02) 100%)`,
+      border: `1px solid rgba(${rgb},0.18)`,
+      padding: 20,
+      overflow: "hidden",
+    }}>
+      <div style={{
+        position: "absolute", top: 0, left: 0, width: 3, height: "100%",
+        background: `linear-gradient(180deg, ${barGradient})`,
+        borderRadius: "3px 0 0 3px",
+      }} />
+      <Text style={{ fontSize: 12, display: "flex", alignItems: "center", marginBottom: 10, color: iconColor, fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase" }}>
+        {icon} {label}
+      </Text>
+      <Paragraph style={{
+        fontSize: 13, lineHeight: 1.9, color: "var(--c-text)",
+        whiteSpace: "pre-wrap", wordBreak: "break-word", marginBottom: 0,
+      }}>
+        {text}
+      </Paragraph>
+    </div>
+  );
+
+  const viewPromptStyles = {
+    front: { label: "正面视角提示词", rgb: "129,140,248", bar: "#818cf8, #6366f1", icon: "#818cf8" },
+    right: { label: "右侧视角提示词", rgb: "56,189,248",  bar: "#38bdf8, #0284c7", icon: "#38bdf8" },
+    back:  { label: "背面视角提示词", rgb: "244,114,182", bar: "#f472b6, #db2777", icon: "#f472b6" },
+    left:  { label: "左侧视角提示词", rgb: "94,234,212",  bar: "#5eead4, #14b8a6", icon: "#5eead4" },
+  } as const;
+
+  return (
+    <div style={{ padding: '0 24px 40px', maxWidth: 1200, margin: '0 auto' }}>
+      {/* ── Back button ── */}
+      <Button
+        type="text"
+        icon={<ArrowLeftOutlined />}
+        onClick={() => navigate('/')}
+        style={{ marginBottom: 20, color: 'var(--c-text-muted)', fontSize: 13 }}
+      >
+        返回首页
+      </Button>
+
+      <Row gutter={[24, 24]}>
+        {/* ── Left column: status + logs ── */}
+        <Col xs={24} md={8}>
+          {/* Status card */}
+          <Card style={{ ...glassCardOverflow, marginBottom: 24 }} styles={{ body: { padding: 24 } }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+              <Text style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--c-text-muted)' }}>
+                {task.id}
+              </Text>
+              <Tag color={cfg.color} className="neon-tag">{cfg.text}</Tag>
+            </div>
+
+            {isTaskActive && (
+              <Progress
+                className="task-progress task-progress--active"
+                percent={(() => {
+                  const s = task.status;
+                  if (s === TaskStatus.GENERATING_BG || s === TaskStatus.GENERATING_AVATAR) return 35;
+                  if (s === TaskStatus.GENERATING_ICONS || s === TaskStatus.GENERATING_TEXTURES) return 55;
+                  if (s === TaskStatus.SLICING) return 70;
+                  if (s === TaskStatus.COMPOSITING) return 85;
+                  if (s === TaskStatus.PROCESSING) return 15;
+                  return 5;
+                })()}
+                strokeColor={cfg.color}
+                showInfo={false}
+                size="small"
+                style={{
+                  marginBottom: 16,
+                  '--task-progress-color': cfg.color,
+                } as React.CSSProperties}
+              />
+            )}
+
+
+
+            {task.ai_provider && (
+              <Tag style={{
+                background: 'linear-gradient(135deg, var(--c-primary) 0%, var(--c-accent) 100%)',
+                color: '#fff', border: 'none', borderRadius: 'var(--radius-xs)',
+                fontWeight: 700, fontSize: 11,
+              }}>
+                {task.ai_provider.toUpperCase()}
+              </Tag>
+            )}
+
+            {task.status === TaskStatus.FAILED && (
+              <Button
+                type="primary"
+                icon={<RedoOutlined />}
+                size="small"
+                loading={retryMutation.isPending}
+                onClick={() => retryMutation.mutate()}
+                style={{
+                  marginTop: 12,
+                  background: 'linear-gradient(135deg, #ef4444 0%, #f97316 100%)',
+                  border: 'none',
+                  borderRadius: 'var(--radius-xs)',
+                  fontWeight: 700,
+                  fontSize: 12,
+                  height: 32,
+                  width: '100%',
+                }}
+              >
+                {retryMutation.isPending ? '重试中...' : '重新生成'}
+              </Button>
+            )}
+          </Card>
+
+          {/* Execution log card */}
+          <Card
+            title={<span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--c-text-secondary)' }}>执行日志</span>}
+            style={glassCardOverflow}
+            styles={{ body: { padding: 20 } }}
+            headStyle={{ borderBottom: '1px solid var(--c-border)' }}
+          >
+            <LogViewer logs={task.logs} />
+          </Card>
+        </Col>
+
+        {/* ── Right column: preview + prompts + images ── */}
+        <Col xs={24} md={16}>
+          {/* Digital Human 3D Preview */}
+          {dh && task.avatar_atlas_url && portraitMeshUrl && (
+            <Card style={{ ...glassCardOverflow, marginBottom: 24 }} styles={{ body: { padding: 0 } }}>
+              <Portrait3DViewer
+                atlasUrl={task.avatar_atlas_url || ''}
+                meshUrl={portraitMeshUrl}
+              />
+            </Card>
+          )}
+
+          {/* Design prompts card */}
+          {(task.user_input || task.background_prompt || task.icon_prompt || (dh && task.normal_detail) || diy) && (
+            <Card
+              title={
+                <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--c-text-secondary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {task.author && (
+                    <>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-text-secondary)', textTransform: 'none', letterSpacing: '0' }}>
+                        作者：
+                        <span style={{
+                          color: 'var(--c-primary)',
+                          fontWeight: 700,
+                          background: 'linear-gradient(135deg, var(--c-primary) 0%, var(--c-accent) 100%)',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                          backgroundClip: 'text',
+                        }}>
+                          {task.author}
+                        </span>
+                      </span>
+                      <span style={{ color: 'var(--c-border)', margin: '0 4px' }}>|</span>
+                    </>
+                  )}
+                  设计提示词
+                </span>
+              }
+              style={{ ...glassCardOverflow, marginBottom: 24 }}
+              styles={{ body: { padding: 24 } }}
+              headStyle={{ borderBottom: '1px solid var(--c-border)' }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {/* User input prompt */}
+                {task.user_input && (
+                  <div style={{
+                    position: "relative",
+                    borderRadius: "var(--radius-md)",
+                    background: "linear-gradient(135deg, rgba(52,211,153,0.06) 0%, rgba(52,211,153,0.02) 100%)",
+                    border: "1px solid rgba(52,211,153,0.18)",
+                    padding: 20,
+                    overflow: "hidden",
+                  }}>
+                    <div style={{
+                      position: "absolute", top: 0, left: 0, width: 3, height: "100%",
+                      background: "linear-gradient(180deg, #34d399, #10b981)",
+                      borderRadius: "3px 0 0 3px",
+                    }} />
+                    <Text style={{ fontSize: 12, display: "flex", alignItems: "center", marginBottom: 10, color: "#34d399", fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase" }}>
+                      <FileTextOutlined style={{ marginRight: 6 }} />
+                      用户输入词
+                    </Text>
+                    <Paragraph style={{
+                      fontSize: 13, lineHeight: 1.9, color: "var(--c-text)",
+                      whiteSpace: "pre-wrap", wordBreak: "break-word", marginBottom: 0,
+                    }}>
+                      {task.user_input}
+                    </Paragraph>
+                  </div>
+                )}
+
+                {/* Avatar / Background prompt (skip for DIY - user input is the prompt) */}
+                {/* Background prompt (theme only — digital_human uses dedicated view prompt cards below) */}
+                {task.background_prompt && !diy && !dh && !wallpaper && (
+                  <div style={{
+                    position: "relative",
+                    borderRadius: "var(--radius-md)",
+                    background: "linear-gradient(135deg, rgba(129,140,248,0.06) 0%, rgba(129,140,248,0.02) 100%)",
+                    border: "1px solid rgba(129,140,248,0.18)",
+                    padding: 20,
+                    overflow: "hidden",
+                  }}>
+                    <div style={{
+                      position: "absolute", top: 0, left: 0, width: 3, height: "100%",
+                      background: "linear-gradient(180deg, #818cf8, #6366f1)",
+                      borderRadius: "3px 0 0 3px",
+                    }} />
+                    <Text style={{ fontSize: 12, display: "flex", alignItems: "center", marginBottom: 10, color: "#818cf8", fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase" }}>
+                      <SkinOutlined style={{ marginRight: 6 }} />
+                      背景提示词
+                    </Text>
+                    <Paragraph style={{
+                      fontSize: 13, lineHeight: 1.9, color: "var(--c-text)",
+                      whiteSpace: "pre-wrap", wordBreak: "break-word", marginBottom: 0,
+                    }}>
+                      {task.background_prompt}
+                    </Paragraph>
+                  </div>
+                )}
+
+                {/* Digital human: character anchor */}
+                {dh && task.view_prompts?.character_anchor && renderPromptBlock(
+                  "anchor",
+                  <FileTextOutlined style={{ marginRight: 6 }} />,
+                  "角色锚定描述",
+                  task.view_prompts.character_anchor,
+                  "236,72,153",
+                  "#ec4899, #db2777",
+                  "#ec4899",
+                )}
+
+                {/* Digital human: 4 view prompts */}
+                {dh && (["front", "right", "back", "left"] as const).map((v) => {
+                  const text = task.view_prompts?.[v];
+                  if (!text) return null;
+                  const s = viewPromptStyles[v];
+                  return renderPromptBlock(
+                    v,
+                    <SkinOutlined style={{ marginRight: 6 }} />,
+                    s.label,
+                    text,
+                    s.rgb,
+                    s.bar,
+                    s.icon,
+                  );
+                })}
+
+                {wallpaper && task.background_prompt && (
+                  <div style={{
+                    position: "relative",
+                    borderRadius: "var(--radius-md)",
+                    background: "linear-gradient(135deg, rgba(52,211,153,0.06) 0%, rgba(52,211,153,0.02) 100%)",
+                    border: "1px solid rgba(52,211,153,0.18)",
+                    padding: 20,
+                    overflow: "hidden",
+                  }}>
+                    <div style={{
+                      position: "absolute", top: 0, left: 0, width: 3, height: "100%",
+                      background: "linear-gradient(180deg, #34d399, #06b6d4)",
+                      borderRadius: "3px 0 0 3px",
+                    }} />
+                    <Text style={{ fontSize: 12, display: "flex", alignItems: "center", marginBottom: 10, color: "#34d399", fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase" }}>
+                      <PictureOutlined style={{ marginRight: 6 }} />
+                      壁纸提示词
+                    </Text>
+                    <Paragraph style={{ fontSize: 13, color: "var(--c-text)", margin: 0, lineHeight: 1.7 }}>
+                      {task.background_prompt}
+                    </Paragraph>
+                  </div>
+                )}
+
+                {/* Texture / Icon prompt (skip for DIY) */}
+                {task.icon_prompt && !diy && (
+                  <div style={{
+                    position: "relative",
+                    borderRadius: "var(--radius-md)",
+                    background: dh
+                      ? "linear-gradient(135deg, rgba(167,139,250,0.06) 0%, rgba(167,139,250,0.02) 100%)"
+                      : "linear-gradient(135deg, rgba(6,182,212,0.06) 0%, rgba(6,182,212,0.02) 100%)",
+                    border: dh
+                      ? "1px solid rgba(167,139,250,0.18)"
+                      : "1px solid rgba(6,182,212,0.18)",
+                    padding: 20,
+                    overflow: "hidden",
+                  }}>
+                    <div style={{
+                      position: "absolute", top: 0, left: 0, width: 3, height: "100%",
+                      background: dh
+                        ? "linear-gradient(180deg, #a78bfa, #7c3aed)"
+                        : "linear-gradient(180deg, #06b6d4, #22d3ee)",
+                      borderRadius: "3px 0 0 3px",
+                    }} />
+                    <Text style={{ fontSize: 12, display: "flex", alignItems: "center", marginBottom: 10, color: dh ? "#a78bfa" : "#22d3ee", fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase" }}>
+                      {dh
+                        ? <><SkinOutlined style={{ marginRight: 6 }} />纹理提示词</>
+                        : <><AppstoreOutlined style={{ marginRight: 6 }} />图标提示词</>
+                      }
+                    </Text>
+                    <Paragraph style={{
+                      fontSize: 13, lineHeight: 1.9, color: "var(--c-text)",
+                      whiteSpace: "pre-wrap", wordBreak: "break-word", marginBottom: 0,
+                    }}>
+                      {task.icon_prompt}
+                    </Paragraph>
+                  </div>
+                )}
+
+                {/* Normal detail prompt */}
+                {dh && task.normal_detail && (
+                  <div style={{
+                    position: "relative",
+                    borderRadius: "var(--radius-md)",
+                    background: "linear-gradient(135deg, rgba(245,158,11,0.06) 0%, rgba(245,158,11,0.02) 100%)",
+                    border: "1px solid rgba(245,158,11,0.18)",
+                    padding: 20,
+                    overflow: "hidden",
+                  }}>
+                    <div style={{
+                      position: "absolute", top: 0, left: 0, width: 3, height: "100%",
+                      background: "linear-gradient(180deg, #f59e0b, #fbbf24)",
+                      borderRadius: "3px 0 0 3px",
+                    }} />
+                    <Text style={{ fontSize: 12, display: "flex", alignItems: "center", marginBottom: 10, color: "#fbbf24", fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase" }}>
+                      <SkinOutlined style={{ marginRight: 6 }} />
+                      法线贴图细节描述
+                    </Text>
+                    <Paragraph style={{
+                      fontSize: 13, lineHeight: 1.9, color: "var(--c-text)",
+                      whiteSpace: "pre-wrap", wordBreak: "break-word", marginBottom: 0,
+                    }}>
+                      {task.normal_detail}
+                    </Paragraph>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+
+          {/* ── Generated images ── */}
+          {(task.background_image_url || task.icon_image_url || task.avatar_image_url || task.texture_albedo_url || task.texture_normal_url || task.view_image_urls) && (
+            <Card style={{ ...glassCardOverflow, marginBottom: 24, animation: 'fadeInUp 0.4s var(--ease-out) 0.15s both' }} styles={{ body: { padding: 28 } }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--c-text-secondary)', marginBottom: 20, letterSpacing: '1px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 10 }}>
+                生成结果
+                {task.ai_provider && (
+                  <Tag style={{
+                    background: 'linear-gradient(135deg, var(--c-primary) 0%, var(--c-accent) 100%)',
+                    color: '#fff', border: 'none', borderRadius: 'var(--radius-xs)',
+                    fontWeight: 700, fontSize: 11,
+                  }}>
+                    {task.ai_provider.toUpperCase()}
+                  </Tag>
+                )}
+              </h3>
+              <Image.PreviewGroup>
+                <Row gutter={24}>
+                  {dh && (["front", "right", "back", "left"] as const).map((v) => {
+                    const url = task.view_image_urls?.[v];
+                    if (!url) return null;
+                    const label = { front: "正面视角", right: "右侧视角", back: "背面视角", left: "左侧视角" }[v];
+                    return <Col key={v} xs={24} md={12}><ImageBlock label={label} src={url} alt={label} /></Col>;
+                  })}
+                  {dh && <Col xs={24} md={12}><ImageBlock label="漫反射贴图" src={task.texture_albedo_url} alt="Albedo" /></Col>}
+                  {dh && <Col xs={24} md={12}><ImageBlock label="法线贴图" src={task.texture_normal_url} alt="Normal" /></Col>}
+                  {!dh && !diy && !wallpaper && <Col xs={24} md={12}><ImageBlock label="背景图" src={task.background_image_url} alt="Background" /></Col>}
+                  {!dh && !diy && !wallpaper && <Col xs={24} md={12}><ImageBlock label="图标" src={task.icon_image_url} alt="Icon" /></Col>}
+                  {diy && <Col xs={24} md={12}><ImageBlock label="生成图片" src={task.background_image_url} alt="Generated" /></Col>}
+                  {wallpaper && <Col xs={24} md={12}><ImageBlock label="壁纸" src={task.background_image_url} alt="Wallpaper" /></Col>}
+                </Row>
+              </Image.PreviewGroup>
+            </Card>
+          )}
+
+        </Col>
+      </Row>
+
+      {/* ── Resource package (full width, independent) ── */}
+      {fileTree && task?.status === TaskStatus.COMPLETED && (
+        <Card
+          title={
+            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--c-text-secondary)' }}>
+              资源包
+            </span>
+          }
+          extra={
+            <Button
+              type="primary"
+              icon={<DownloadOutlined />}
+              size="small"
+              loading={downloading}
+              className="neon-btn"
+              onClick={async () => {
+                if (downloading) return;
+                setDownloading(true);
+                try {
+                  await taskApi.downloadZip(task.id);
+                  const dp = creditPrices?.find(c => c.action === 'download');
+                  if (dp && dp.price > 0) message.success('打包下载完成（消耗' + dp.price + '积分）');
+                  else message.success('打包下载完成');
+                  queryClient.invalidateQueries({ queryKey: ['my-credits'] });
+                } finally { setDownloading(false); }
+              }}
+            >
+              打包下载{(() => {
+                const p = creditPrices?.find(c => c.action === 'download');
+                if (p && p.price > 0) return ` (${p.price}积分)`;
+                return '';
+              })()}
+            </Button>
+          }
+          style={{ ...glassCardOverflow, marginTop: 24, animation: 'fadeInUp 0.4s var(--ease-out) 0.2s both' }}
+          styles={{ body: { padding: 24 } }}
+          headStyle={{ borderBottom: '1px solid var(--c-border)' }}
+        >
+          <Row gutter={[2, 20]} style={{ alignItems: 'flex-start' }}>
+            <Col xs={24} md={8}>
+              <div style={{ background: 'var(--c-bg-card)', borderRadius: 'var(--radius-md)', padding: 2, maxHeight: 520, overflowY: 'auto' }}>
+                <BuildTreeViewer buildTree={fileTree} onSelect={handleSelectFile} />
+              </div>
+            </Col>
+            <Col xs={24} md={16}>
+              <ImagePreview
+                imagePath={selectedImagePath}
+                images={filteredBuildImages}
+                onSelectImage={(path) => setSelectedImagePath(path)}
+                autoPreview
+                viewMode={previewViewMode}
+                onViewModeChange={setPreviewViewMode}
+              />
+            </Col>
+          </Row>
+        </Card>
+      )}
+
+      {/* ── Like button (bottom center, only for completed tasks) ── */}
+      {task?.status === TaskStatus.COMPLETED && (<div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 28,
+        animation: 'fadeInUp 0.4s var(--ease-out) 0.3s both',
+      }}>
+        <button
+          type="button"
+          onClick={() => likeMutation.mutate()}
+          disabled={likedByMe || likeMutation.isPending}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '12px 32px',
+            borderRadius: 'var(--radius-xl)',
+            border: likedByMe ? '1px solid rgba(239,68,68,0.55)' : '1px solid rgba(239,68,68,0.25)',
+            background: likedByMe ? 'rgba(239,68,68,0.22)' : 'rgba(239,68,68,0.08)',
+            boxShadow: likedByMe ? '0 0 32px rgba(239,68,68,0.32)' : '0 0 24px rgba(239,68,68,0.12)',
+            cursor: (likedByMe || likeMutation.isPending) ? 'not-allowed' : 'pointer',
+            transition: 'all 0.3s var(--ease-out)',
+            color: '#ef4444',
+            fontSize: 16,
+            fontWeight: 700,
+            fontFamily: 'var(--font-mono)',
+            letterSpacing: '0.5px',
+            userSelect: 'none',
+            outline: 'none',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(239,68,68,0.28)';
+            e.currentTarget.style.boxShadow = '0 0 32px rgba(239,68,68,0.32)';
+            e.currentTarget.style.transform = 'scale(1.06)';
+          }}
+          onMouseLeave={(e) => {
+            if (likedByMe) return;  // no hover effect change when already liked
+            e.currentTarget.style.background = 'rgba(239,68,68,0.08)';
+            e.currentTarget.style.boxShadow = '0 0 24px rgba(239,68,68,0.12)';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+        >
+          {likedByMe ? (
+            <HeartFilled style={{ fontSize: 22, color: '#ef4444', filter: 'drop-shadow(0 0 8px rgba(239,68,68,0.5))' }} />
+          ) : (
+            <HeartOutlined style={{ fontSize: 22, color: '#ef4444', filter: 'drop-shadow(0 0 8px rgba(239,68,68,0.5))' }} />
+          )}
+          <span>{task?.likes ?? 0}</span>
+        </button>
+      </div>)}
+    </div>
+  );
+};

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Card, Tag, Typography, Space } from 'antd';
-import { UserOutlined, BulbOutlined, HeartFilled } from '@ant-design/icons';
-import { Task, TaskType } from '@/types/task';
+import { UserOutlined, BulbOutlined, HeartFilled, PictureOutlined } from '@ant-design/icons';
+import { TaskListItem, TaskType } from '@/types/task';
+import { toResourceUrl } from '@/utils/url';
 import { statusConfig } from '@/constants/status';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -13,7 +14,7 @@ dayjs.locale('zh-cn');
 const { Text } = Typography;
 
 interface TaskCardProps {
-  task: Task;
+  task: TaskListItem;
   onClick: (taskId: string) => void;
   showLikes?: boolean;
 }
@@ -23,7 +24,8 @@ export const TaskCard = React.memo<TaskCardProps>(({ task, onClick, showLikes = 
   const [hover, setHover] = useState(false);
   const isDigitalHuman = task.task_type === TaskType.DIGITAL_HUMAN;
   const isDIY = task.task_type === TaskType.DIY;
-  const coverImageUrl = isDigitalHuman ? task.avatar_image_url : task.background_image_url || task.preview_image_url;
+  const isWallpaper = task.task_type === TaskType.WALLPAPER;
+  const coverImageUrl = toResourceUrl(isDigitalHuman ? (task.avatar_image_url || '') : (task.background_image_url || task.preview_image_url || ''));
   const hasImage = Boolean(coverImageUrl);
 
   return (
@@ -60,6 +62,11 @@ export const TaskCard = React.memo<TaskCardProps>(({ task, onClick, showLikes = 
               {isDigitalHuman ? (
                 <UserOutlined style={{
                   fontSize: 36, color: cfg.color, opacity: 0.6,
+                  filter: `drop-shadow(0 0 12px ${cfg.color}50)`,
+                }} />
+              ) : isWallpaper ? (
+                <PictureOutlined style={{
+                  fontSize: 36, color: '#34d399', opacity: 0.6,
                   filter: `drop-shadow(0 0 12px ${cfg.color}50)`,
                 }} />
               ) : isDIY ? (
@@ -112,6 +119,18 @@ export const TaskCard = React.memo<TaskCardProps>(({ task, onClick, showLikes = 
               <BulbOutlined /> DIY生图
             </div>
           )}
+          {isWallpaper && (
+            <div style={{
+              position: 'absolute', top: 10, left: 10,
+              background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.3)',
+              color: '#34d399', padding: '4px 12px', borderRadius: 'var(--radius-sm)',
+              fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5,
+              letterSpacing: '0.3px',
+              backdropFilter: 'blur(8px)',
+            }}>
+              <PictureOutlined /> 壁纸
+            </div>
+          )}
 
           {/* status badge */}
           <div style={{
@@ -145,6 +164,8 @@ export const TaskCard = React.memo<TaskCardProps>(({ task, onClick, showLikes = 
               <Tag className="neon-tag" style={{
                 background: isDigitalHuman
                   ? 'linear-gradient(135deg, #a78bfa 0%, #6366f1 100%)'
+                  : isWallpaper
+                  ? 'linear-gradient(135deg, #34d399 0%, #06b6d4 100%)'
                   : isDIY
                   ? 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)'
                   : 'linear-gradient(135deg, var(--c-primary) 0%, var(--c-accent) 100%)',
@@ -172,4 +193,3 @@ export const TaskCard = React.memo<TaskCardProps>(({ task, onClick, showLikes = 
     </Card>
   );
 });
-

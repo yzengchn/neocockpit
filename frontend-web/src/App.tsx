@@ -1,15 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConfigProvider, theme } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { HomePage } from './pages/HomePage';
 import { TaskDetailPage } from './pages/TaskDetailPage';
-import { AdminPage } from './pages/AdminPage';
-import { LoginPage, getAdminToken, clearAdminToken } from './pages/LoginPage';
-import { authApi } from './services/api';
-import { usePresence } from './hooks/usePresence';
- import './styles/global.css';
+import ProfilePage from './pages/ProfilePage';
+import '@/styles/global.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,39 +20,7 @@ const queryClient = new QueryClient({
   },
 });
 
-/** Route guard: only allow access when a valid admin token exists. */
-const AdminGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [checking, setChecking] = useState(true);
-  const [authorized, setAuthorized] = useState(false);
-
-  useEffect(() => {
-    const token = getAdminToken();
-    if (!token) {
-      setChecking(false);
-      return;
-    }
-    authApi
-      .verify(token)
-      .then((valid) => setAuthorized(valid))
-      .catch(() => setAuthorized(false))
-      .finally(() => setChecking(false));
-  }, []);
-
-  if (checking) {
-    // Minimal loading state — avoids flash of login page while verifying
-    return null;
-  }
-
-  if (!authorized) {
-    clearAdminToken();
-    return <Navigate to="/admin/login" replace />;
-  }
-
-  return <>{children}</>;
-};
-
 const App: React.FC = () => {
-  usePresence('/');
    return (
     <ConfigProvider
       locale={zhCN}
@@ -125,15 +90,7 @@ const App: React.FC = () => {
               <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/tasks/:taskId" element={<TaskDetailPage />} />
-                <Route path="/admin/login" element={<LoginPage />} />
-                <Route
-                  path="/admin"
-                  element={
-                    <AdminGuard>
-                      <AdminPage />
-                    </AdminGuard>
-                  }
-                />
+                <Route path="/profile" element={<ProfilePage />} />
               </Routes>
             </div>
           </div>

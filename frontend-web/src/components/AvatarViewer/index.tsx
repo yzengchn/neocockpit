@@ -260,7 +260,8 @@ function loadTexture(gl: WebGL2RenderingContext, url: string, fallback: [number,
       resolve(tex);
     };
     img.onerror = () => resolve(tex);
-    img.src = url;
+    const token = localStorage.getItem('aigc_user_token');
+    img.src = token && url.startsWith('/api/resource/') ? url + (url.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token) : url;
   });
 }
 
@@ -828,7 +829,9 @@ async function fetchMesh(meshUrl?: string): Promise<MeshJson> {
     return buildFallbackMesh();
   }
   try {
-    const response = await fetch(meshUrl, { cache: 'no-store' });
+    const token = localStorage.getItem('aigc_user_token');
+    const url = token && meshUrl.startsWith('/api/resource/') ? meshUrl + (meshUrl.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token) : meshUrl;
+    const response = await fetch(url, { cache: 'no-store' });
     if (!response.ok) {
       throw new Error(`Failed to load mesh: ${response.status}`);
     }

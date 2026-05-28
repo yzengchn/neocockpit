@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Image, Empty, Typography, Button } from 'antd';
 import { AppstoreOutlined, PictureOutlined } from '@ant-design/icons';
+import { toResourceUrl } from '@/utils/url';
 
 const { Text } = Typography;
 
@@ -81,7 +82,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
                     cursor: 'pointer',
                   }}>
                     <Image
-                      src={image.path}
+                      src={toResourceUrl(image.path)}
                       alt={image.name}
                       preview={{ mask: '查看大图' }}
                       style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
@@ -104,7 +105,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
     }
 
     // Default: single large image view
-    const displayPath = imagePath || images[0].path;
+    const displayPath = toResourceUrl(imagePath || images[0].path);
     return (
       <div style={{
         background: 'var(--c-bg-card)',
@@ -122,7 +123,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
           </Button>
         </div>
         <Image
-          src={displayPath}
+          src={toResourceUrl(displayPath)}
           alt={alt}
           preview={{ mask: '点击查看大图' }}
           style={{ maxWidth: '100%', borderRadius: 'var(--radius-sm)' }}
@@ -184,7 +185,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
                 overflow: 'hidden',
               }}>
                 <img
-                  src={image.path}
+                  src={toResourceUrl(image.path)}
                   alt={image.name}
                   style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
                 />
@@ -215,7 +216,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
           图片预览
         </Text>
         <Image
-          src={imagePath}
+          src={toResourceUrl(imagePath || '')}
           alt={alt}
           style={{ maxWidth: '100%', borderRadius: 'var(--radius-sm)' }}
           preview={{ mask: '点击查看大图' }}

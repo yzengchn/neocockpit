@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Row, Col, Spin, Empty } from 'antd';
 import { TaskCard } from './TaskCard';
-import { Task, TaskType } from '@/types/task';
+import { TaskListItem, TaskType } from '@/types/task';
 
 
 
 
 interface TaskListProps {
-  tasks: Task[];
+  tasks: TaskListItem[];
   loading: boolean;
   onTaskClick: (taskId: string) => void;
   activeFilter: TaskFilter;
@@ -18,7 +18,7 @@ interface TaskListProps {
   onLoadMore: () => void;
 }
 
-export type TaskFilter = 'all' | 'popular' | TaskType.THEME | TaskType.DIGITAL_HUMAN | TaskType.DIY;
+
 
 export const TaskList: React.FC<TaskListProps> = ({
   tasks,
@@ -40,6 +40,7 @@ export const TaskList: React.FC<TaskListProps> = ({
     count: number;
     accent: string;
   }> = [
+    { key: TaskType.WALLPAPER, label: '壁纸', count: counts[TaskType.WALLPAPER], accent: '#34d399' },
     { key: TaskType.THEME, label: '车载主题', count: counts[TaskType.THEME], accent: '#22d3ee' },
     { key: TaskType.DIGITAL_HUMAN, label: '数字人', count: counts[TaskType.DIGITAL_HUMAN], accent: '#a78bfa' },
     { key: TaskType.DIY, label: 'DIY生图', count: counts[TaskType.DIY], accent: '#f59e0b' },
@@ -185,8 +186,22 @@ export const TaskList: React.FC<TaskListProps> = ({
               </Col>
             ))}
           </Row>
+          {hasMore && (
+            <div
+              ref={loadMoreRef}
+              style={{ textAlign: 'center', padding: '32px 0', minHeight: 60 }}
+            >
+              {loadingMore && <Spin />}
+            </div>
+          )}
+          {!hasMore && tasks.length > 0 && (
+            <div style={{ textAlign: 'center', padding: '16px 0', color: 'var(--c-text-muted)', fontSize: 12 }}>
+              — 已加载全部 —
+            </div>
+          )}
         </>
       )}
     </div>
   );
 };
+export type TaskFilter = 'all' | 'popular' | TaskType.WALLPAPER | TaskType.THEME | TaskType.DIGITAL_HUMAN | TaskType.DIY;
