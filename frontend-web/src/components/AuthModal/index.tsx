@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { Modal, Input, Button } from "antd";
+import { Modal, Input, Button, Space } from "antd";
 import InkCanvas, { InkSignature, SignatureRejectReason, AnchorPoint as CanvasAnchorPoint } from "../InkCanvas";
 import { getLastNickname } from "@/services/api";
 import type { InkSignature as InkSignatureType } from "@/types/task";
@@ -81,6 +81,8 @@ const AuthModal: React.FC<AuthModalProps> = ({
   const [error, setError] = useState("");
   const [hintAnchors, setHintAnchors] = useState<{ start?: CanvasAnchorPoint; end?: CanvasAnchorPoint } | null>(null);
   const [canvasKey, setCanvasKey] = useState(0);
+  const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
+  const [pendingRegisterResult, setPendingRegisterResult] = useState<{ token: string; user: { id: string; nick_name: string } } | null>(null);
 
   // 弹窗打开时，重置所有状态
   React.useEffect(() => {
@@ -102,6 +104,8 @@ const AuthModal: React.FC<AuthModalProps> = ({
       setError("");
       setHintAnchors(null);
       setCanvasKey(0);
+      setSaveConfirmOpen(false);
+      setPendingRegisterResult(null);
     }
   }, [open]);
 
@@ -208,13 +212,100 @@ const AuthModal: React.FC<AuthModalProps> = ({
     setError("");
     try {
       const result = await onRegister(nickName.trim(), signature);
-      onLogin(result.token, result.user, signature);
+      // 注册成功 → 弹出保存签名确认框
+      setPendingRegisterResult(result);
+      setSaveConfirmOpen(true);
     } catch (e: any) {
       setError(e?.response?.data?.detail || "注册失败，请尝试不同的笔迹");
     } finally {
       setLoading(false);
     }
-  }, [nickName, signature, onRegister, onLogin]);
+  }, [nickName, signature, onRegister]);
+
+  /** 保存签名为本地文件 */
+  const downloadSignature = useCallback(() => {
+    if (!signature) return;
+    // 将 raw_points 笔迹渲染到临时 canvas 导出为 PNG
+    const SIZE = 512;
+    const PAD = 40;
+    const canvas = document.createElement("canvas");
+    canvas.width = SIZE;
+    canvas.height = SIZE;
+    const ctx = canvas.getContext("2d")!;
+    // 背景
+    ctx.fillStyle = "#0e1018";
+    ctx.fillRect(0, 0, SIZE, SIZE);
+    // 3×3 网格虚线
+    ctx.strokeStyle = "rgba(129,140,248,0.2)";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([6, 4]);
+    for (let i = 1; i < 3; i++) {
+      const pos = PAD + (SIZE - 2 * PAD) * i / 3;
+      ctx.beginPath(); ctx.moveTo(pos, PAD); ctx.lineTo(pos, SIZE - PAD); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(PAD, pos); ctx.lineTo(SIZE - PAD, pos); ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    // 锚点
+    const drawAnchor = (pt: CanvasAnchorPoint, color: string, label: string) => {
+      const cx = PAD + pt.x * (SIZE - 2 * PAD);
+      const cy = PAD + pt.y * (SIZE - 2 * PAD);
+      ctx.beginPath(); ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+      ctx.fillStyle = color.replace("1)", "0.2)"); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+      ctx.fillStyle = color; ctx.fill();
+      ctx.font = "bold 11px sans-serif"; ctx.fillStyle = color;
+      ctx.textAlign = "center"; ctx.fillText(label, cx, cy - 12);
+    };
+    if (signature.start) drawAnchor(signature.start, "rgba(74,222,128,1)", "起");
+    if (signature.end) drawAnchor(signature.end, "rgba(248,113,113,1)", "终");
+    // 笔迹
+    const pts = signature.raw_points;
+    if (pts && pts.length > 1) {
+      ctx.strokeStyle = "#818cf8";
+      ctx.lineWidth = 3;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      ctx.moveTo(PAD + pts[0].x * (SIZE - 2 * PAD), PAD + pts[0].y * (SIZE - 2 * PAD));
+      for (let i = 1; i < pts.length; i++) {
+        ctx.lineTo(PAD + pts[i].x * (SIZE - 2 * PAD), PAD + pts[i].y * (SIZE - 2 * PAD));
+      }
+      ctx.stroke();
+    }
+    // 昵称水印
+    ctx.font = "13px sans-serif";
+    ctx.fillStyle = "rgba(255,255,255,0.3)";
+    ctx.textAlign = "right";
+    ctx.fillText(nickName.trim(), SIZE - PAD, SIZE - 12);
+
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `签名备份_${nickName.trim() || "signature"}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, "image/png");
+  }, [signature, nickName]);
+
+  /** 保存签名确认框 — 完成（不需要 / 已保存） */
+  const handleSaveConfirmDone = useCallback(() => {
+    if (pendingRegisterResult) {
+      onLogin(pendingRegisterResult.token, pendingRegisterResult.user, signature ?? undefined);
+    }
+    setSaveConfirmOpen(false);
+    setPendingRegisterResult(null);
+  }, [pendingRegisterResult, onLogin, signature]);
+
+  /** 保存签名确认框 — 帮我保存 */
+  const handleSaveConfirmSave = useCallback(() => {
+    downloadSignature();
+    // 下载后继续完成登录流程
+    handleSaveConfirmDone();
+  }, [downloadSignature, handleSaveConfirmDone]);
 
   // 共用的画布尺寸
   const canvasSize = 390;
@@ -227,6 +318,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
     : "✨ 创建签名";
 
   return (
+    <>
     <Modal
       open={open}
       footer={null}
@@ -457,6 +549,60 @@ const AuthModal: React.FC<AuthModalProps> = ({
         )}
       </div>
     </Modal>
+    
+    {/* 保存签名确认框 */}
+    <Modal
+      open={saveConfirmOpen}
+      footer={null}
+      closable={false}
+      centered
+      width={400}
+      styles={{
+        body: { padding: "24px 28px 20px" },
+        mask: { backgroundColor: "rgba(0,0,0,0.6)" },
+      }}
+    >
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: 32, marginBottom: 12 }}>🔐</div>
+        <div style={{ fontSize: 16, fontWeight: 600, color: "var(--c-text-primary)", marginBottom: 8 }}>
+          签名笔迹即密码
+        </div>
+        <div style={{ fontSize: 13, color: "var(--c-text-secondary)", lineHeight: 1.6, marginBottom: 20 }}>
+          每次登录需要绘制类似相仿笔迹才能登录，<br />
+          建议保存签名备份，以免遗忘笔迹无法登录。
+        </div>
+        <Space direction="vertical" style={{ width: "100%" }} size={12}>
+          <Button
+            block
+            style={{
+              height: 44,
+              borderRadius: "var(--radius-sm)",
+              fontWeight: 600,
+              background: "linear-gradient(135deg, var(--c-primary), var(--c-accent))",
+              border: "none",
+              color: "#fff",
+            }}
+            onClick={handleSaveConfirmSave}
+          >
+            💾 帮我保存
+          </Button>
+          <Button
+            block
+            style={{
+              height: 36,
+              borderRadius: "var(--radius-sm)",
+              color: "var(--c-text-muted)",
+              border: "1px solid rgba(255,255,255,0.15)",
+              background: "transparent",
+            }}
+            onClick={handleSaveConfirmDone}
+          >
+            不需要
+          </Button>
+        </Space>
+      </div>
+    </Modal>
+    </>
   );
 };
 

@@ -280,6 +280,18 @@ const InkCanvas: React.FC<InkCanvasProps> = ({
     finishStroke();
   };
 
+  const handleMouseLeave = () => {
+    if (drawingRef.current) finishStroke();
+  };
+
+  useEffect(() => {
+    const onGlobalMouseUp = () => {
+      if (drawingRef.current) finishStroke();
+    };
+    document.addEventListener("mouseup", onGlobalMouseUp);
+    return () => document.removeEventListener("mouseup", onGlobalMouseUp);
+  }, [finishStroke]);
+
   return (
     <div style={{ position: "relative", width, height }}>
       <canvas
@@ -296,7 +308,7 @@ const InkCanvas: React.FC<InkCanvasProps> = ({
         onMouseDown={handleStart}
         onMouseMove={handleMove}
         onMouseUp={handleEnd}
-        
+        onMouseLeave={handleMouseLeave}
         onTouchStart={handleStart}
         onTouchMove={handleMove}
         onTouchEnd={handleEnd}

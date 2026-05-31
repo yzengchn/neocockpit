@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Row, Col, Spin, Empty } from 'antd';
+import { FireFilled, HeartFilled } from '@ant-design/icons';
 import { TaskCard } from './TaskCard';
 import { TaskListItem, TaskType } from '@/types/task';
 
@@ -9,7 +10,6 @@ import { TaskListItem, TaskType } from '@/types/task';
 interface TaskListProps {
   tasks: TaskListItem[];
   loading: boolean;
-  onTaskClick: (taskId: string) => void;
   activeFilter: TaskFilter;
   counts: Record<TaskFilter, number>;
   hasMore: boolean;
@@ -23,7 +23,6 @@ interface TaskListProps {
 export const TaskList: React.FC<TaskListProps> = ({
   tasks,
   loading,
-  onTaskClick,
   activeFilter,
   counts,
   hasMore,
@@ -113,24 +112,67 @@ export const TaskList: React.FC<TaskListProps> = ({
           >所有任务</button>
           <button
             type="button"
-            onClick={() => onFilterChange('popular' as TaskFilter)}
+            onClick={() => onFilterChange('likeRanking' as TaskFilter)}
             style={{
-              color: activeFilter === 'popular' ? '#fff' : 'var(--c-text-secondary)',
+              color: activeFilter === 'likeRanking' ? '#fff' : 'var(--c-text-secondary)',
               fontSize: 14,
               fontWeight: 700,
               padding: '6px 18px',
               minHeight: 32,
-              borderRadius: '0 var(--radius-sm) var(--radius-sm) 0',
-              background: activeFilter === 'popular' ? 'rgba(239,68,68,0.15)' : 'rgba(99,102,241,0.06)',
-              border: activeFilter === 'popular' ? '1px solid rgba(239,68,68,0.5)' : '1px solid var(--c-border)',
-              boxShadow: activeFilter === 'popular' ? '0 0 18px rgba(239,68,68,0.15)' : 'none',
+              borderRadius: 0,
+              background: activeFilter === 'likeRanking' ? 'rgba(239,68,68,0.15)' : 'rgba(99,102,241,0.06)',
+              border: activeFilter === 'likeRanking' ? '1px solid rgba(239,68,68,0.5)' : '1px solid var(--c-border)',
+              borderRight: 'none',
+              boxShadow: activeFilter === 'likeRanking' ? '0 0 18px rgba(239,68,68,0.15)' : 'none',
               cursor: 'pointer',
               fontFamily: 'var(--font-mono)',
               letterSpacing: 0,
               transition: 'border-color 0.25s var(--ease-out), background 0.25s var(--ease-out), color 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out)',
               whiteSpace: 'nowrap',
             }}
-          >最受欢迎</button>
+          >
+            <HeartFilled
+              style={{
+                marginRight: 6,
+                color: '#ef4444',
+                filter: activeFilter === 'likeRanking'
+                  ? 'drop-shadow(0 0 7px rgba(239,68,68,0.75))'
+                  : 'drop-shadow(0 0 4px rgba(239,68,68,0.45))',
+              }}
+            />
+            Top100
+          </button>
+          <button
+            type="button"
+            onClick={() => onFilterChange('viewRanking' as TaskFilter)}
+            style={{
+              color: activeFilter === 'viewRanking' ? '#fff' : 'var(--c-text-secondary)',
+              fontSize: 14,
+              fontWeight: 700,
+              padding: '6px 18px',
+              minHeight: 32,
+              borderRadius: '0 var(--radius-sm) var(--radius-sm) 0',
+              background: activeFilter === 'viewRanking' ? 'rgba(6,182,212,0.15)' : 'rgba(99,102,241,0.06)',
+              border: activeFilter === 'viewRanking' ? '1px solid rgba(6,182,212,0.5)' : '1px solid var(--c-border)',
+              boxShadow: activeFilter === 'viewRanking' ? '0 0 18px rgba(6,182,212,0.15)' : 'none',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-mono)',
+              letterSpacing: 0,
+              transition: 'border-color 0.25s var(--ease-out), background 0.25s var(--ease-out), color 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <FireFilled
+              style={{
+                marginRight: 6,
+                color: '#f97316',
+                filter: activeFilter === 'viewRanking'
+                  ? 'drop-shadow(0 0 7px rgba(249,115,22,0.75))'
+                  : 'drop-shadow(0 0 4px rgba(249,115,22,0.45))',
+              }}
+            />
+            Hot100
+          </button>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end' }}>
           {filterOptions.map((option) => {
@@ -182,7 +224,7 @@ export const TaskList: React.FC<TaskListProps> = ({
             {tasks.map((task, i) => (
               <Col key={task.id} xs={24} sm={12} md={8} lg={6}
                 style={{ animation: `fadeInUp 0.4s var(--ease-out) ${Math.min(i, 11) * 0.04}s both` }}>
-                <TaskCard task={task} onClick={onTaskClick} showLikes={activeFilter === "popular"} />
+                <TaskCard task={task} showLikes={activeFilter === "likeRanking"} />
               </Col>
             ))}
           </Row>
@@ -204,4 +246,4 @@ export const TaskList: React.FC<TaskListProps> = ({
     </div>
   );
 };
-export type TaskFilter = 'all' | 'popular' | TaskType.WALLPAPER | TaskType.THEME | TaskType.DIGITAL_HUMAN | TaskType.DIY;
+export type TaskFilter = 'all' | 'likeRanking' | 'viewRanking' | TaskType.WALLPAPER | TaskType.THEME | TaskType.DIGITAL_HUMAN | TaskType.DIY;

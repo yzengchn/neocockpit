@@ -1,21 +1,84 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, Row, Col, Typography, Tag, Button, Spin, Progress, Image, message } from 'antd';
-import { ArrowLeftOutlined, DownloadOutlined, SkinOutlined, AppstoreOutlined, FileTextOutlined, RedoOutlined, HeartFilled, HeartOutlined, PictureOutlined } from '@ant-design/icons';
+import { Card, Col, Progress, Row, Spin, Tag, Button, Typography, message } from 'antd';
+import { ArrowLeftOutlined, DownloadOutlined, SkinOutlined, AppstoreOutlined, FileTextOutlined, RedoOutlined, PictureOutlined, EyeOutlined } from '@ant-design/icons';
 import { LogViewer } from '@/components/TaskDetail/LogViewer';
 import { ImageBlock } from '@/components/TaskDetail/ImageBlock';
+import { LikeSection } from '@/components/TaskDetail/LikeSection';
+import { CommentSection } from '@/components/TaskDetail/CommentSection';
 import { BuildTreeViewer } from '@/components/BuildTree';
 import { ImagePreview } from '@/components/ImagePreview';
 import { Portrait3DViewer } from '@/components/Portrait3DViewer';
 import { taskApi, userApi } from '@/services/api';
 import { useIdleDetector } from '@/hooks/useIdleDetector';
 import { isUserLoggedIn } from '@/services/api';
-import { TaskStatus, TaskType, isActiveTaskStatus, BuildTree } from '@/types/task';
+import { TaskStatus, TaskType, isActiveTaskStatus } from '@/types/task';
+import type { BuildTree, BuildTreeNode, Task } from '@/types/task';
 import { statusConfig } from '@/constants/status';
 import { glassCardOverflow } from '@/constants/styles';
 
 const { Text, Paragraph } = Typography;
+
+type BuildImage = { name: string; path: string };
+type BuildTreeRecord = Record<string, unknown>;
+
+const IMAGE_PATH_RE = /\.(png|jpg|jpeg|gif|webp|svg|bmp)$/i;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === 'object';
+
+const isBuildTreeNode = (value: unknown): value is BuildTreeNode =>
+  isRecord(value) && typeof value.path === 'string' && typeof value.type === 'string';
+
+const toImageName = (name: string, prefix = '') => (prefix ? `${prefix}/${name}` : name);
+const stripUrlSuffix = (path: string) => path.split(/[?#]/, 1)[0] || path;
+const isImageNode = (node: BuildTreeNode) =>
+  node.type === 'image' || IMAGE_PATH_RE.test(stripUrlSuffix(node.path));
+
+const collectBuildImages = (tree: BuildTreeRecord, prefix = ''): BuildImage[] => {
+  const images: BuildImage[] = [];
+  for (const [name, value] of Object.entries(tree)) {
+    if (isBuildTreeNode(value)) {
+      if (isImageNode(value)) {
+        images.push({ name: toImageName(name, prefix), path: value.path });
+      }
+      continue;
+    }
+
+    if (isRecord(value)) {
+      images.push(...collectBuildImages(value, toImageName(name, prefix)));
+    }
+  }
+  return images;
+};
+
+const findFirstBuildImagePath = (tree: BuildTreeRecord): string | undefined => {
+  for (const value of Object.values(tree)) {
+    if (isBuildTreeNode(value)) {
+      if (isImageNode(value)) return value.path;
+      continue;
+    }
+
+    if (isRecord(value)) {
+      const found = findFirstBuildImagePath(value);
+      if (found) return found;
+    }
+  }
+  return undefined;
+};
+
+const getDefaultPreviewImagePath = (task: Task | undefined, fileTree: BuildTree | undefined): string | undefined => {
+  if (!task) return undefined;
+  if (task.task_type === TaskType.DIGITAL_HUMAN) {
+    if (task.avatar_image_url) return task.avatar_image_url;
+  } else if (task.background_image_url) {
+    return task.background_image_url;
+  }
+  if (task.preview_image_url) return task.preview_image_url;
+  if (fileTree && task.status === TaskStatus.COMPLETED) return findFirstBuildImagePath(fileTree);
+  return undefined;
+};
 
 export const TaskDetailPage: React.FC = () => {
   const { taskId } = useParams<{ taskId: string }>();
@@ -28,6 +91,15 @@ export const TaskDetailPage: React.FC = () => {
 
   const queryClient = useQueryClient();
 
+  const recordViewMutation = useMutation({
+    mutationFn: (id: string) => taskApi.recordTaskView(id),
+    onSuccess: (data) => {
+      queryClient.setQueryData<Task>(['task', data.id], (current) =>
+        current ? { ...current, views: data.views } : current,
+      );
+    },
+  });
+
   const retryMutation = useMutation({
     mutationFn: () => taskApi.retryTask(taskId!),
     onSuccess: () => {
@@ -36,45 +108,18 @@ export const TaskDetailPage: React.FC = () => {
     },
   });
 
-  const likeMutation = useMutation({
-    mutationFn: () => taskApi.likeTask(taskId!),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['myLikedTaskIds'] });
-    },
-    onError: (err: any) => {
-      if (err?.response?.status === 401) {
-        message.warning('请先登录后再点赞');
-      } else if (err?.response?.status === 409) {
-        message.info('你已经点赞过该任务');
-      } else {
-        message.error('点赞失败，请稍后再试');
-      }
-    },
-  });
-
-  const { data: likedTaskIds } = useQuery({
-    queryKey: ['myLikedTaskIds'],
-    queryFn: () => taskApi.listMyLikedTaskIds(),
-    enabled: isUserLoggedIn(),
-    staleTime: 60_000,
-  });
-
   const { data: creditPrices } = useQuery({
     queryKey: ['credit-prices'],
     queryFn: () => userApi.getCreditPrices(),
     staleTime: 60_000,
   });
 
-  const { } = useQuery({
+  useQuery({
     queryKey: ['my-credits'],
     queryFn: () => userApi.getCredits(),
     enabled: isUserLoggedIn(),
     staleTime: 10_000,
   });
-
-  const likedByMe = !!taskId && (likedTaskIds?.includes(taskId) ?? false);
 
   const { data: task, isLoading } = useQuery({
     queryKey: ['task', taskId],
@@ -91,62 +136,40 @@ export const TaskDetailPage: React.FC = () => {
     enabled: !!taskId && task?.status === TaskStatus.COMPLETED,
   });
 
-  // Collect all image paths from fileTree — store raw API paths (no token appended yet);
-  // toResourceUrl is applied later in ImagePreview, ensuring regex matches the .ext at end of path.
+  // Collect image resource paths from fileTree and keep them unauthenticated here.
+  // ImagePreview appends the user token immediately before rendering.
   const allBuildImages = useMemo(() => {
     if (!fileTree || task?.status !== TaskStatus.COMPLETED) return undefined;
-    const imgs: Array<{ name: string; path: string }> = [];
-    const collect = (node: any, prefix = '') => {
-      if (!node) return;
-      for (const [k, v] of Object.entries(node)) {
-        if (v && typeof v === 'object' && 'path' in v) {
-          const rawPath = String((v as any).path);
-          if (/\.(png|jpg|jpeg|gif|webp|svg)$/i.test(rawPath)) {
-            imgs.push({ name: prefix ? `${prefix}/${k}` : k, path: rawPath });
-          }
-        } else if (v && typeof v === 'object') {
-          collect(v, prefix ? `${prefix}/${k}` : k);
-        }
-      }
-    };
-    collect(fileTree);
-    return imgs.length > 0 ? imgs : undefined;
+    const images = collectBuildImages(fileTree);
+    return images.length > 0 ? images : undefined;
   }, [fileTree, task?.status]);
 
   const filteredBuildImages = useMemo(() => {
     if (!allBuildImages) return undefined;
     if (!selectedDirectory) return allBuildImages;
-    const prefix = selectedDirectory + '/';
-    const filtered = allBuildImages.filter(img => img.name.startsWith(prefix));
-    return filtered;
+    return allBuildImages.filter(img => img.name.startsWith(`${selectedDirectory}/`));
   }, [allBuildImages, selectedDirectory]);
 
   React.useEffect(() => {
-    if (selectedImagePath) return;
-    if (task?.task_type === TaskType.DIGITAL_HUMAN) {
-      if (task.avatar_image_url) { setSelectedImagePath(task.avatar_image_url); return; }
-    } else {
-      if (task?.background_image_url) { setSelectedImagePath(task.background_image_url); return; }
-    }
-    if (task?.preview_image_url) { setSelectedImagePath(task.preview_image_url); return; }
-    if (fileTree && task?.status === TaskStatus.COMPLETED) {
-      const findFirstImage = (tree: any): string | undefined => {
-        for (const [_k, v] of Object.entries(tree)) {
-          if (v && typeof v === 'object') {
-            if ('path' in v) {
-              const rawPath = String((v as any).path);
-              if (/\.(png|jpg|jpeg|gif|webp|svg)$/i.test(rawPath)) return rawPath;
-            } else {
-              const found = findFirstImage(v);
-              if (found) return found;
-            }
-          }
-        }
-      };
-      const first = findFirstImage(fileTree);
-      if (first) setSelectedImagePath(first);
-    }
-  }, [task?.background_image_url, task?.avatar_image_url, task?.preview_image_url, fileTree, task?.status]);
+    setSelectedImagePath(undefined);
+    setSelectedDirectory(undefined);
+    setPreviewViewMode('single');
+  }, [taskId]);
+
+  React.useEffect(() => {
+    if (!task?.id) return;
+    const viewKey = `aigc_task_viewed_${task.id}`;
+    if (sessionStorage.getItem(viewKey)) return;
+
+    sessionStorage.setItem(viewKey, '1');
+    recordViewMutation.mutate(task.id);
+  }, [task?.id]);
+
+  const defaultPreviewImagePath = useMemo(() => {
+    return getDefaultPreviewImagePath(task, fileTree);
+  }, [task, fileTree]);
+
+  const previewImagePath = selectedImagePath ?? (selectedDirectory ? undefined : defaultPreviewImagePath);
 
   const handleSelectFile = (path: string, isDirectory: boolean) => {
     if (isDirectory) {
@@ -264,9 +287,6 @@ export const TaskDetailPage: React.FC = () => {
                 } as React.CSSProperties}
               />
             )}
-
-
-
             {task.ai_provider && (
               <Tag style={{
                 background: 'linear-gradient(135deg, var(--c-primary) 0%, var(--c-accent) 100%)',
@@ -304,8 +324,10 @@ export const TaskDetailPage: React.FC = () => {
           <Card
             title={<span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--c-text-secondary)' }}>执行日志</span>}
             style={glassCardOverflow}
-            styles={{ body: { padding: 20 } }}
-            headStyle={{ borderBottom: '1px solid var(--c-border)' }}
+            styles={{
+              body: { padding: 20 },
+              header: { borderBottom: '1px solid var(--c-border)' },
+            }}
           >
             <LogViewer logs={task.logs} />
           </Card>
@@ -350,8 +372,10 @@ export const TaskDetailPage: React.FC = () => {
                 </span>
               }
               style={{ ...glassCardOverflow, marginBottom: 24 }}
-              styles={{ body: { padding: 24 } }}
-              headStyle={{ borderBottom: '1px solid var(--c-border)' }}
+              styles={{
+                body: { padding: 24 },
+                header: { borderBottom: '1px solid var(--c-border)' },
+              }}
             >
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                 {/* User input prompt */}
@@ -531,7 +555,16 @@ export const TaskDetailPage: React.FC = () => {
 
           {/* ── Generated images ── */}
           {(task.background_image_url || task.icon_image_url || task.avatar_image_url || task.texture_albedo_url || task.texture_normal_url || task.view_image_urls) && (
-            <Card style={{ ...glassCardOverflow, marginBottom: 24, animation: 'fadeInUp 0.4s var(--ease-out) 0.15s both' }} styles={{ body: { padding: 28 } }}>
+            <Card
+              style={{
+                ...glassCardOverflow,
+                marginBottom: 24,
+                background: 'var(--c-bg-card-solid)',
+                backdropFilter: 'none',
+                WebkitBackdropFilter: 'none',
+              }}
+              styles={{ body: { padding: 28 } }}
+            >
               <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--c-text-secondary)', marginBottom: 20, letterSpacing: '1px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 10 }}>
                 生成结果
                 {task.ai_provider && (
@@ -544,22 +577,20 @@ export const TaskDetailPage: React.FC = () => {
                   </Tag>
                 )}
               </h3>
-              <Image.PreviewGroup>
-                <Row gutter={24}>
-                  {dh && (["front", "right", "back", "left"] as const).map((v) => {
-                    const url = task.view_image_urls?.[v];
-                    if (!url) return null;
-                    const label = { front: "正面视角", right: "右侧视角", back: "背面视角", left: "左侧视角" }[v];
-                    return <Col key={v} xs={24} md={12}><ImageBlock label={label} src={url} alt={label} /></Col>;
-                  })}
-                  {dh && <Col xs={24} md={12}><ImageBlock label="漫反射贴图" src={task.texture_albedo_url} alt="Albedo" /></Col>}
-                  {dh && <Col xs={24} md={12}><ImageBlock label="法线贴图" src={task.texture_normal_url} alt="Normal" /></Col>}
-                  {!dh && !diy && !wallpaper && <Col xs={24} md={12}><ImageBlock label="背景图" src={task.background_image_url} alt="Background" /></Col>}
-                  {!dh && !diy && !wallpaper && <Col xs={24} md={12}><ImageBlock label="图标" src={task.icon_image_url} alt="Icon" /></Col>}
-                  {diy && <Col xs={24} md={12}><ImageBlock label="生成图片" src={task.background_image_url} alt="Generated" /></Col>}
-                  {wallpaper && <Col xs={24} md={12}><ImageBlock label="壁纸" src={task.background_image_url} alt="Wallpaper" /></Col>}
-                </Row>
-              </Image.PreviewGroup>
+              <Row gutter={24}>
+                {dh && (["front", "right", "back", "left"] as const).map((v) => {
+                  const url = task.view_image_urls?.[v];
+                  if (!url) return null;
+                  const label = { front: "正面视角", right: "右侧视角", back: "背面视角", left: "左侧视角" }[v];
+                  return <Col key={v} xs={24} md={12}><ImageBlock label={label} src={url} alt={label} /></Col>;
+                })}
+                {dh && <Col xs={24} md={12}><ImageBlock label="漫反射贴图" src={task.texture_albedo_url} alt="Albedo" /></Col>}
+                {dh && <Col xs={24} md={12}><ImageBlock label="法线贴图" src={task.texture_normal_url} alt="Normal" /></Col>}
+                {!dh && !diy && !wallpaper && <Col xs={24} md={12}><ImageBlock label="背景图" src={task.background_image_url} alt="Background" /></Col>}
+                {!dh && !diy && !wallpaper && <Col xs={24} md={12}><ImageBlock label="图标" src={task.icon_image_url} alt="Icon" /></Col>}
+                {diy && <Col xs={24} md={12}><ImageBlock label="生成图片" src={task.background_image_url} alt="Generated" /></Col>}
+                {wallpaper && <Col xs={24} md={12}><ImageBlock label="壁纸" src={task.background_image_url} alt="Wallpaper" /></Col>}
+              </Row>
             </Card>
           )}
 
@@ -600,19 +631,27 @@ export const TaskDetailPage: React.FC = () => {
               })()}
             </Button>
           }
-          style={{ ...glassCardOverflow, marginTop: 24, animation: 'fadeInUp 0.4s var(--ease-out) 0.2s both' }}
-          styles={{ body: { padding: 24 } }}
-          headStyle={{ borderBottom: '1px solid var(--c-border)' }}
+          style={{
+            ...glassCardOverflow,
+            marginTop: 24,
+            background: 'var(--c-bg-card-solid)',
+            backdropFilter: 'none',
+            WebkitBackdropFilter: 'none',
+          }}
+          styles={{
+            body: { padding: 24 },
+            header: { borderBottom: '1px solid var(--c-border)' },
+          }}
         >
           <Row gutter={[2, 20]} style={{ alignItems: 'flex-start' }}>
-            <Col xs={24} md={8}>
+            <Col xs={24} md={7}>
               <div style={{ background: 'var(--c-bg-card)', borderRadius: 'var(--radius-md)', padding: 2, maxHeight: 520, overflowY: 'auto' }}>
                 <BuildTreeViewer buildTree={fileTree} onSelect={handleSelectFile} />
               </div>
             </Col>
-            <Col xs={24} md={16}>
+            <Col xs={24} md={17}>
               <ImagePreview
-                imagePath={selectedImagePath}
+                imagePath={previewImagePath}
                 images={filteredBuildImages}
                 onSelectImage={(path) => setSelectedImagePath(path)}
                 autoPreview
@@ -624,57 +663,42 @@ export const TaskDetailPage: React.FC = () => {
         </Card>
       )}
 
-      {/* ── Like button (bottom center, only for completed tasks) ── */}
-      {task?.status === TaskStatus.COMPLETED && (<div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: 28,
-        animation: 'fadeInUp 0.4s var(--ease-out) 0.3s both',
-      }}>
-        <button
-          type="button"
-          onClick={() => likeMutation.mutate()}
-          disabled={likedByMe || likeMutation.isPending}
-          style={{
-            display: 'flex',
+      {/* ── Like + comments (only for completed tasks) ── */}
+      {task?.status === TaskStatus.COMPLETED && taskId && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)',
+          alignItems: 'start',
+          marginTop: 28,
+          animation: 'fadeInUp 0.4s var(--ease-out) 0.3s both',
+        }}>
+          <div />
+          <LikeSection
+            taskId={taskId}
+            likes={task.likes ?? 0}
+            containerStyle={{ marginTop: 0, animation: 'none' }}
+          />
+          <div style={{
+            justifySelf: 'end',
+            alignSelf: 'start',
+            display: 'inline-flex',
             alignItems: 'center',
-            gap: 10,
-            padding: '12px 32px',
-            borderRadius: 'var(--radius-xl)',
-            border: likedByMe ? '1px solid rgba(239,68,68,0.55)' : '1px solid rgba(239,68,68,0.25)',
-            background: likedByMe ? 'rgba(239,68,68,0.22)' : 'rgba(239,68,68,0.08)',
-            boxShadow: likedByMe ? '0 0 32px rgba(239,68,68,0.32)' : '0 0 24px rgba(239,68,68,0.12)',
-            cursor: (likedByMe || likeMutation.isPending) ? 'not-allowed' : 'pointer',
-            transition: 'all 0.3s var(--ease-out)',
-            color: '#ef4444',
-            fontSize: 16,
+            gap: 6,
+            paddingTop: 2,
+            color: 'var(--c-text-muted)',
+            fontSize: 13,
             fontWeight: 700,
             fontFamily: 'var(--font-mono)',
-            letterSpacing: '0.5px',
-            userSelect: 'none',
-            outline: 'none',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(239,68,68,0.28)';
-            e.currentTarget.style.boxShadow = '0 0 32px rgba(239,68,68,0.32)';
-            e.currentTarget.style.transform = 'scale(1.06)';
-          }}
-          onMouseLeave={(e) => {
-            if (likedByMe) return;  // no hover effect change when already liked
-            e.currentTarget.style.background = 'rgba(239,68,68,0.08)';
-            e.currentTarget.style.boxShadow = '0 0 24px rgba(239,68,68,0.12)';
-            e.currentTarget.style.transform = 'scale(1)';
-          }}
-        >
-          {likedByMe ? (
-            <HeartFilled style={{ fontSize: 22, color: '#ef4444', filter: 'drop-shadow(0 0 8px rgba(239,68,68,0.5))' }} />
-          ) : (
-            <HeartOutlined style={{ fontSize: 22, color: '#ef4444', filter: 'drop-shadow(0 0 8px rgba(239,68,68,0.5))' }} />
-          )}
-          <span>{task?.likes ?? 0}</span>
-        </button>
-      </div>)}
+          }}>
+            <EyeOutlined style={{ fontSize: 15 }} />
+            <span>浏览量 {task.views ?? 0}</span>
+          </div>
+        </div>
+      )}
+
+      {task?.status === TaskStatus.COMPLETED && taskId && (
+        <CommentSection taskId={taskId} isIdle={isIdle} />
+      )}
     </div>
   );
 };

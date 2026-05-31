@@ -185,7 +185,8 @@ code { font-family: var(--font-mono); }
 .ant-select-selector {
   transition: border-color 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out) !important;
   background: var(--c-bg-input) !important;
-  border-color: var(--c-border) !important;
+  border: 1px solid var(--c-border) !important;
+  border-radius: var(--radius-sm) !important;
   color: var(--c-text) !important;
 }
 .ant-input:focus,

@@ -31,6 +31,8 @@ export const imageFrame: React.CSSProperties = {
   overflow: 'hidden',
   border: '1px solid var(--c-border)',
   boxShadow: 'var(--shadow-card)',
+  background: 'var(--c-bg-card-solid)',
+  contain: 'paint',
 };
 
 /** Small uppercase label above image sections. */

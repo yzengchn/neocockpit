@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useState } from 'react';
 import { Typography, Image } from 'antd';
 import { imageFrame, imageLabel } from '@/constants/styles';
+import { toResourceUrl } from '@/utils/url';
 
 const { Text } = Typography;
 
@@ -10,24 +11,55 @@ interface ImageBlockProps {
   alt: string;
 }
 
-/** Append user token to /api/resource/ URLs for authenticated access. */
-function withToken(url: string): string {
-  if (!url.startsWith('/api/resource/')) return url;
-  const token = localStorage.getItem('aigc_user_token');
-  if (!token) return url;
-  return url + (url.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token);
-}
+const previewButtonStyle: React.CSSProperties = {
+  display: 'block',
+  width: '100%',
+  padding: 0,
+  border: 0,
+  background: 'transparent',
+  cursor: 'zoom-in',
+  lineHeight: 0,
+};
+
+const stableImageStyle: React.CSSProperties = {
+  width: '100%',
+  display: 'block',
+  objectFit: 'contain',
+  transform: 'translateZ(0)',
+  backfaceVisibility: 'hidden',
+};
 
 /** Reusable labeled image block (used in TaskDetailPage generated results). */
 export const ImageBlock: React.FC<ImageBlockProps> = ({ label, src, alt }) => {
-  if (!src) return null;
-  const authSrc = useMemo(() => withToken(src), [src]);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const authSrc = src ? toResourceUrl(src) : '';
+
+  if (!src || !authSrc) return null;
+
   return (
     <>
       <Text style={imageLabel}>{label}</Text>
       <div style={imageFrame}>
-        <Image src={authSrc} alt={alt} preview={{ mask: '点击查看大图' }} style={{ width: '100%', display: 'block' }} />
+        <button
+          type="button"
+          aria-label={`查看${label}大图`}
+          title="点击查看大图"
+          onClick={() => setPreviewOpen(true)}
+          style={previewButtonStyle}
+        >
+          <img src={authSrc} alt={alt} style={stableImageStyle} />
+        </button>
       </div>
+      <Image
+        src={authSrc}
+        alt={alt}
+        wrapperStyle={{ display: 'none' }}
+        preview={{
+          src: authSrc,
+          visible: previewOpen,
+          onVisibleChange: (visible) => setPreviewOpen(visible),
+        }}
+      />
     </>
   );
 };

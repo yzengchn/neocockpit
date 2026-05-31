@@ -14,6 +14,10 @@ import type {
   InkSignature,
   UserInfo,
   AuthTokenResponse,
+  NotificationListResponse,
+  TaskComment,
+  TaskCommentCreate,
+  TaskCommentListResponse,
 } from '@/types/task';
 
 const USER_TOKEN_KEY = 'aigc_user_token';
@@ -75,6 +79,11 @@ export const taskApi = {
     return response.data;
   },
 
+  recordTaskView: async (taskId: string): Promise<{ id: string; views: number }> => {
+    const response = await api.post<{ id: string; views: number }>(`/tasks/${taskId}/view`);
+    return response.data;
+  },
+
   getQueueStatus: async (): Promise<QueueStatus> => {
     const response = await api.get<QueueStatus>('/tasks/queue/status');
     return response.data;
@@ -85,8 +94,13 @@ export const taskApi = {
     return response.data;
   },
 
-  listPopularTasks: async (limit = 20): Promise<TaskListItem[]> => {
-    const response = await api.get<TaskListItem[]>('/tasks/popular', { params: { limit } });
+  listLikeRankingTasks: async (skip = 0, limit = 12): Promise<TaskListItem[]> => {
+    const response = await api.get<TaskListItem[]>('/tasks/likeranking', { params: { skip, limit } });
+    return response.data;
+  },
+
+  listViewRankingTasks: async (skip = 0, limit = 12): Promise<TaskListItem[]> => {
+    const response = await api.get<TaskListItem[]>('/tasks/viewranking', { params: { skip, limit } });
     return response.data;
   },
 
@@ -120,6 +134,23 @@ export const taskApi = {
   downloadPackage: async (taskId: string): Promise<string> => {
     const response = await api.post<{ url: string }>(`/tasks/${taskId}/download`);
     return response.data.url;
+  },
+
+  listComments: async (
+    taskId: string,
+    skip = 0,
+    limit = 50,
+    includeMyReviewing = false,
+  ): Promise<TaskCommentListResponse> => {
+    const response = await api.get<TaskCommentListResponse>(`/tasks/${taskId}/comments/`, {
+      params: { skip, limit, include_my_reviewing: includeMyReviewing },
+    });
+    return response.data;
+  },
+
+  createComment: async (taskId: string, data: TaskCommentCreate): Promise<TaskComment> => {
+    const response = await api.post<TaskComment>(`/tasks/${taskId}/comments/`, data);
+    return response.data;
   },
 };
 
@@ -245,6 +276,25 @@ export const userApi = {
   getCreditPrices: async (): Promise<Array<{ action: string; price: number; label: string }>> => {
     const res = await api.get('/user/credit-prices');
     return res.data;
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Notification API
+// ---------------------------------------------------------------------------
+
+export const notificationApi = {
+  list: async (limit = 20): Promise<NotificationListResponse> => {
+    const response = await api.get<NotificationListResponse>('/notifications/', { params: { limit } });
+    return response.data;
+  },
+
+  markRead: async (notificationId: string): Promise<void> => {
+    await api.post(`/notifications/${notificationId}/read`);
+  },
+
+  markAllRead: async (): Promise<void> => {
+    await api.post('/notifications/read-all');
   },
 };
 

@@ -67,6 +67,7 @@ export interface TaskListItem {
   preview_image_url?: string;
   avatar_image_url?: string;
   likes: number;
+  views: number;
   created_at: string;
   updated_at?: string;
 }
@@ -109,6 +110,31 @@ export interface TaskCreate {
   icon_descriptions?: string[];
 }
 
+export interface TaskComment {
+  id: string;
+  task_id: string;
+  user_id: string;
+  author: string;
+  parent_id?: string | null;
+  reply_to_user_id?: string | null;
+  reply_to_author?: string | null;
+  content: string;
+  status: 'pending' | 'approved' | 'rejected';
+  review_reason?: string | null;
+  reviewed_at?: string | null;
+  created_at: string | null;
+}
+
+export interface TaskCommentListResponse {
+  items: TaskComment[];
+  total: number;
+}
+
+export interface TaskCommentCreate {
+  content: string;
+  parent_id?: string | null;
+}
+
 export interface QueueStatus {
   is_processing: boolean;
   processing_task_ids: string[];
@@ -120,6 +146,21 @@ export interface QueueStatus {
     processing_count: number;
     queued_count: number;
     processing_task_ids: string[];
+  }>;
+  channels?: Record<string, {
+    provider: string;
+    name: string;
+    running_count: number;
+    max_concurrent: number;
+    processing_task_ids: string[];
+  }>;
+  channels_overview?: Array<{
+    id: string;
+    provider: string;
+    name: string;
+    max_concurrent: number;
+    weight: number;
+    running_count: number;
   }>;
 }
 
@@ -224,6 +265,23 @@ export interface UserInfo {
   nick_name: string;
   credits: number;
   created_at: string;
+}
+
+export type NotificationLevel = 'info' | 'warning' | 'error';
+
+export interface UserNotification {
+  id: string;
+  title: string;
+  content: string;
+  link_url?: string | null;
+  level: NotificationLevel;
+  is_read: boolean;
+  created_at: string | null;
+}
+
+export interface NotificationListResponse {
+  items: UserNotification[];
+  unread_count: number;
 }
 
 export interface UserAdmin {

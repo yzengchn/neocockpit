@@ -10,11 +10,14 @@ interface LogViewerProps {
   logs: LogEntry[];
 }
 
-const levelConfig = {
+const levelConfig: Record<string, { color: string; icon: React.ReactNode }> = {
   info:    { color: '#6366f1', icon: <InfoCircleOutlined /> },
   success: { color: '#22c55e', icon: <CheckCircleOutlined /> },
+  warning: { color: '#f59e0b', icon: <InfoCircleOutlined /> },
   error:   { color: '#ef4444', icon: <CloseCircleOutlined /> },
 };
+
+const DEFAULT_CONFIG = { color: '#6366f1', icon: <InfoCircleOutlined /> };
 
 /** Clean up log messages: remove verbose URL details and multi-line error trailing info */
 const cleanLogMessage = (message: string): string => {
@@ -57,7 +60,7 @@ export const LogViewer: React.FC<LogViewerProps> = ({ logs }) => {
   return (
     <Timeline
       items={filteredLogs.map((log, index) => {
-        const config = levelConfig[log.level];
+        const config = levelConfig[log.level] ?? DEFAULT_CONFIG;
         const cleanedMessage = cleanLogMessage(log.message);
         const isLongMessage = cleanedMessage.length > 100;
         const isExpanded = expandedLogs.has(index);

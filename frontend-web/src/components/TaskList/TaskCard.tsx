@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, Tag, Typography, Space } from 'antd';
-import { UserOutlined, BulbOutlined, HeartFilled, PictureOutlined } from '@ant-design/icons';
+import { UserOutlined, BulbOutlined, HeartFilled, PictureOutlined, EyeOutlined } from '@ant-design/icons';
 import { TaskListItem, TaskType } from '@/types/task';
 import { toResourceUrl } from '@/utils/url';
 import { statusConfig } from '@/constants/status';
@@ -15,11 +16,10 @@ const { Text } = Typography;
 
 interface TaskCardProps {
   task: TaskListItem;
-  onClick: (taskId: string) => void;
   showLikes?: boolean;
 }
 
-export const TaskCard = React.memo<TaskCardProps>(({ task, onClick, showLikes = false }) => {
+export const TaskCard = React.memo<TaskCardProps>(({ task, showLikes = false }) => {
   const cfg = statusConfig[task.status];
   const [hover, setHover] = useState(false);
   const isDigitalHuman = task.task_type === TaskType.DIGITAL_HUMAN;
@@ -27,11 +27,21 @@ export const TaskCard = React.memo<TaskCardProps>(({ task, onClick, showLikes = 
   const isWallpaper = task.task_type === TaskType.WALLPAPER;
   const coverImageUrl = toResourceUrl(isDigitalHuman ? (task.avatar_image_url || '') : (task.background_image_url || task.preview_image_url || ''));
   const hasImage = Boolean(coverImageUrl);
+  const taskHref = `/tasks/${task.id}`;
 
   return (
+    <Link
+      to={taskHref}
+      aria-label={`查看任务详情：${task.user_input}`}
+      style={{
+        display: 'block',
+        height: '100%',
+        color: 'inherit',
+        textDecoration: 'none',
+      }}
+    >
     <Card
       hoverable
-      onClick={() => onClick(task.id)}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
@@ -160,36 +170,52 @@ export const TaskCard = React.memo<TaskCardProps>(({ task, onClick, showLikes = 
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             paddingTop: 10, borderTop: '1px solid var(--c-border)',
           }}>
-            {task.ai_provider && (
-              <Tag className="neon-tag" style={{
-                background: isDigitalHuman
-                  ? 'linear-gradient(135deg, #a78bfa 0%, #6366f1 100%)'
-                  : isWallpaper
-                  ? 'linear-gradient(135deg, #34d399 0%, #06b6d4 100%)'
-                  : isDIY
-                  ? 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)'
-                  : 'linear-gradient(135deg, var(--c-primary) 0%, var(--c-accent) 100%)',
-                color: '#fff',
-              }}>
-                {task.ai_provider.toUpperCase()}
-              </Tag>
-            )}
-            {showLikes && (task.likes ?? 0) > 0 && (
+            <div style={{ minWidth: 0 }}>
+              {task.ai_provider && (
+                <Tag className="neon-tag" style={{
+                  background: isDigitalHuman
+                    ? 'linear-gradient(135deg, #a78bfa 0%, #6366f1 100%)'
+                    : isWallpaper
+                    ? 'linear-gradient(135deg, #34d399 0%, #06b6d4 100%)'
+                    : isDIY
+                    ? 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)'
+                    : 'linear-gradient(135deg, var(--c-primary) 0%, var(--c-accent) 100%)',
+                  color: '#fff',
+                }}>
+                  {task.ai_provider.toUpperCase()}
+                </Tag>
+              )}
+            </div>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              marginLeft: 'auto', flexShrink: 0,
+            }}>
               <span style={{
-                fontSize: 12, fontWeight: 700, color: '#ef4444',
+                fontSize: 12, fontWeight: 700, color: 'var(--c-text-muted)',
                 display: 'flex', alignItems: 'center', gap: 4,
                 fontFamily: 'var(--font-mono)',
               }}>
-                <HeartFilled style={{ fontSize: 12 }} />
-                {task.likes}
+                <EyeOutlined style={{ fontSize: 12 }} />
+                {task.views ?? 0}
               </span>
-            )}
-            <Text style={{ fontSize: 12, color: 'var(--c-text-muted)', fontFamily: 'var(--font-mono)' }}>
-              {dayjs(task.created_at).fromNow()}
-            </Text>
+              {showLikes && (task.likes ?? 0) > 0 && (
+                <span style={{
+                  fontSize: 12, fontWeight: 700, color: '#ef4444',
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  fontFamily: 'var(--font-mono)',
+                }}>
+                  <HeartFilled style={{ fontSize: 12 }} />
+                  {task.likes}
+                </span>
+              )}
+              <Text style={{ fontSize: 12, color: 'var(--c-text-muted)', fontFamily: 'var(--font-mono)' }}>
+                {dayjs(task.created_at).fromNow()}
+              </Text>
+            </div>
           </div>
         </Space>
       </div>
     </Card>
+    </Link>
   );
 });
