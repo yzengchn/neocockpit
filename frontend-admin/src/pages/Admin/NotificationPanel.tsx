@@ -7,7 +7,9 @@ import {
   message,
   Modal,
   Popconfirm,
+  Radio,
   Select,
+  Space,
   Switch,
   Table,
   Tag,
@@ -18,8 +20,13 @@ import {
   DeleteOutlined,
   EditOutlined,
   PlusOutlined,
+  TeamOutlined,
+  UserOutlined,
 } from '@ant-design/icons';
 import { adminNotificationApi } from '@/services/admin';
+import { NOTIFICATION_LEVEL_META, NOTIFICATION_LEVEL_OPTIONS } from '@/constants/adminMeta';
+import { ADMIN_QUERY_KEYS } from '@/constants/queryKeys';
+import { formatDateTime, getApiErrorMessage } from '@/utils/format';
 import type {
   NotificationCreate,
   NotificationItem,
@@ -31,14 +38,7 @@ import type { ColumnsType } from 'antd/es/table';
 const { Text } = Typography;
 const { TextArea } = Input;
 
-const LEVEL_OPTIONS: Array<{ value: NotificationLevel; label: string; color: string }> = [
-  { value: 'info', label: '普通', color: 'blue' },
-  { value: 'success', label: '成功', color: 'green' },
-  { value: 'warning', label: '提醒', color: 'gold' },
-  { value: 'error', label: '重要', color: 'red' },
-];
-
-const LEVEL_META = Object.fromEntries(LEVEL_OPTIONS.map((item) => [item.value, item]));
+type NotificationListScope = 'announcement' | 'notification';
 
 interface NotificationFormValues {
   title: string;
@@ -47,34 +47,30 @@ interface NotificationFormValues {
   enabled: boolean;
 }
 
-const formatDateTime = (value?: string | null) => {
-  if (!value) return '-';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '-';
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+const normalizeNotificationLevel = (value?: string | null): NotificationLevel => {
+  if (value === 'warning' || value === 'error') {
+    return value;
+  }
+  return 'info';
 };
 
 const NotificationModal: React.FC<{
   open: boolean;
   editing: NotificationItem | null;
+  saving: boolean;
   onOk: (values: NotificationFormValues) => void;
   onCancel: () => void;
-}> = ({ open, editing, onOk, onCancel }) => {
+}> = ({ open, editing, saving, onOk, onCancel }) => {
   const [form] = Form.useForm<NotificationFormValues>();
 
   return (
     <Modal
-      title={editing ? '编辑通知' : '发布通知'}
+      title={editing ? (editing.user_id ? '编辑通知' : '编辑公告') : '发布公告'}
       open={open}
       onOk={() => form.validateFields().then(onOk)}
       onCancel={onCancel}
       okText="保存"
+      confirmLoading={saving}
       destroyOnClose
       width={600}
       afterOpenChange={(visible) => {
@@ -83,7 +79,7 @@ const NotificationModal: React.FC<{
             ? {
               title: editing.title,
               content: editing.content,
-              level: editing.level,
+              level: normalizeNotificationLevel(editing.level),
               enabled: editing.enabled,
             }
             : {
@@ -102,8 +98,8 @@ const NotificationModal: React.FC<{
         <Form.Item name="content" label="内容" rules={[{ required: true, message: '请输入通知内容' }]}>
           <TextArea rows={5} maxLength={2000} showCount placeholder="输入要展示给用户的通知内容" />
         </Form.Item>
-        <Form.Item name="level" label="类型" rules={[{ required: true }]}>
-          <Select options={LEVEL_OPTIONS.map(({ value, label }) => ({ value, label }))} />
+        <Form.Item name="level" label="严重程度" rules={[{ required: true }]}>
+          <Select options={NOTIFICATION_LEVEL_OPTIONS.map(({ value, label }) => ({ value, label }))} />
         </Form.Item>
         <Form.Item name="enabled" label="发布状态" valuePropName="checked">
           <Switch checkedChildren="展示" unCheckedChildren="隐藏" />
@@ -117,48 +113,64 @@ export const NotificationPanel: React.FC = () => {
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<NotificationItem | null>(null);
+  const [listScope, setListScope] = useState<NotificationListScope>('announcement');
 
   const { data: items = [], isLoading } = useQuery({
-    queryKey: ['admin-notifications'],
+    queryKey: ADMIN_QUERY_KEYS.notifications,
     queryFn: () => adminNotificationApi.listAll(),
   });
 
   const createMut = useMutation({
     mutationFn: (data: NotificationCreate) => adminNotificationApi.create(data),
     onSuccess: () => {
-      message.success('通知已发布');
-      queryClient.invalidateQueries({ queryKey: ['admin-notifications'] });
+      message.success('公告已发布');
+      queryClient.invalidateQueries({ queryKey: ADMIN_QUERY_KEYS.notifications });
     },
-    onError: () => message.error('通知发布失败'),
+    onError: (error) => message.error(getApiErrorMessage(error, '公告发布失败')),
   });
 
   const updateMut = useMutation({
     mutationFn: ({ id, data }: { id: string; data: NotificationUpdate }) => adminNotificationApi.update(id, data),
     onSuccess: () => {
       message.success('通知已更新');
-      queryClient.invalidateQueries({ queryKey: ['admin-notifications'] });
+      queryClient.invalidateQueries({ queryKey: ADMIN_QUERY_KEYS.notifications });
     },
-    onError: () => message.error('通知更新失败'),
+    onError: (error) => message.error(getApiErrorMessage(error, '通知更新失败')),
   });
 
   const deleteMut = useMutation({
     mutationFn: (id: string) => adminNotificationApi.delete(id),
     onSuccess: () => {
       message.success('通知已删除');
-      queryClient.invalidateQueries({ queryKey: ['admin-notifications'] });
+      queryClient.invalidateQueries({ queryKey: ADMIN_QUERY_KEYS.notifications });
     },
     onError: () => message.error('通知删除失败'),
   });
 
-  const handleOk = (values: NotificationFormValues) => {
-    if (editing) {
-      updateMut.mutate({ id: editing.id, data: values });
-    } else {
-      createMut.mutate(values);
-    }
+  const closeModal = () => {
     setModalOpen(false);
     setEditing(null);
   };
+
+  const handleOk = (values: NotificationFormValues) => {
+    const payload: NotificationCreate = {
+      title: values.title.trim(),
+      content: values.content.trim(),
+      level: values.level,
+      enabled: values.enabled,
+    };
+    if (editing) {
+      updateMut.mutate({ id: editing.id, data: payload }, { onSuccess: closeModal });
+    } else {
+      createMut.mutate(payload, { onSuccess: closeModal });
+    }
+  };
+
+  const announcementCount = items.filter((item) => !item.user_id).length;
+  const notificationCount = items.filter((item) => item.user_id).length;
+  const filteredItems = items.filter((item) => (
+    listScope === 'announcement' ? !item.user_id : Boolean(item.user_id)
+  ));
 
   const columns: ColumnsType<NotificationItem> = [
     {
@@ -177,11 +189,35 @@ export const NotificationPanel: React.FC = () => {
     },
     {
       title: '类型',
+      key: 'scope',
+      width: 190,
+      render: (_: unknown, record) => {
+        if (!record.user_id) {
+          return (
+            <Tag icon={<TeamOutlined />} color="green">
+              公告
+            </Tag>
+          );
+        }
+        return (
+          <Space size={6} wrap>
+            <Tag icon={<UserOutlined />} color="purple">
+              通知
+            </Tag>
+            <Text style={{ color: 'var(--c-text-secondary)' }}>
+              {record.user_id} - {record.user_name || '未知用户'}
+            </Text>
+          </Space>
+        );
+      },
+    },
+    {
+      title: '级别',
       dataIndex: 'level',
       key: 'level',
       width: 88,
-      render: (value: NotificationLevel) => {
-        const meta = LEVEL_META[value] ?? LEVEL_META.info;
+      render: (value: string) => {
+        const meta = NOTIFICATION_LEVEL_META[normalizeNotificationLevel(value)];
         return <Tag color={meta.color}>{meta.label}</Tag>;
       },
     },
@@ -237,33 +273,52 @@ export const NotificationPanel: React.FC = () => {
   return (
     <>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => { setEditing(null); setModalOpen(true); }}
-          className="neon-btn"
-        >
-          发布通知
-        </Button>
-        <Tag icon={<BellOutlined />} color="cyan">
-          展示中 {items.filter((item) => item.enabled).length} / 全部 {items.length}
-        </Tag>
+        <Space size={12} wrap>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => { setEditing(null); setModalOpen(true); }}
+            className="neon-btn"
+          >
+            发布公告
+          </Button>
+          <Radio.Group
+            value={listScope}
+            onChange={(event) => setListScope(event.target.value)}
+            options={[
+              { label: '公告', value: 'announcement' },
+              { label: '通知', value: 'notification' },
+            ]}
+          />
+        </Space>
+        <Space size={8} wrap>
+          <Tag icon={<BellOutlined />} color="cyan">
+            展示中 {items.filter((item) => item.enabled).length} / 全部 {items.length}
+          </Tag>
+          <Tag color="green">
+            公告 {announcementCount}
+          </Tag>
+          <Tag color="purple">
+            通知 {notificationCount}
+          </Tag>
+        </Space>
       </div>
       <Table
         className="admin-table"
         columns={columns}
-        dataSource={items}
+        dataSource={filteredItems}
         rowKey="id"
         loading={isLoading}
         pagination={false}
         size="small"
-        scroll={{ x: 920 }}
+        scroll={{ x: 1100 }}
       />
       <NotificationModal
         open={modalOpen}
         editing={editing}
+        saving={createMut.isPending || updateMut.isPending}
         onOk={handleOk}
-        onCancel={() => { setModalOpen(false); setEditing(null); }}
+        onCancel={closeModal}
       />
     </>
   );

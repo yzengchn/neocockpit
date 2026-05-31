@@ -89,6 +89,7 @@ export interface Task {
   logs: LogEntry[];
   output_path?: string;
   likes: number;
+  views: number;
   created_at: string;
   updated_at?: string;
 }
@@ -209,12 +210,15 @@ export interface UserInfo {
   created_at: string;
 }
 
-export type NotificationLevel = 'info' | 'success' | 'warning' | 'error';
+export type NotificationLevel = 'info' | 'warning' | 'error';
 
 export interface NotificationItem {
   id: string;
+  user_id: string | null;
+  user_name: string | null;
   title: string;
   content: string;
+  link_url?: string | null;
   level: NotificationLevel;
   enabled: boolean;
   created_at: string | null;
@@ -292,22 +296,22 @@ export interface CreditPriceUpdate {
   label?: string;
   sort_order?: number;
 }
- 
- export interface CreditPriceCreate {
-   action: string;
-   price: number;
-   label: string;
-   sort_order?: number;
- }
+
+export interface CreditPriceCreate {
+  action: string;
+  price: number;
+  label: string;
+  sort_order?: number;
+}
 
 export const ACTION_LABELS: Record<string, string> = {
-  wallpaper: '车载壁纸',
-  theme: '车载主题',
-  digital_human: '数字人形象',
+  wallpaper: '壁纸',
+  theme: '主题',
+  digital_human: '数字人',
   diy: 'DIY生图',
   download: '打包下载',
   recharge: '充值',
-  check_in: '每日签到',
+  check_in: '签到',
   liked: '被点赞奖励',
 };
 
@@ -347,7 +351,7 @@ export interface ImageChannel {
   weight: number;
   enabled: boolean;
   invoke_count: number;
-  extra_config?: Record<string, any> | null;
+  extra_config?: Record<string, unknown> | null;
 }
 
 export interface ImageChannelCreate {
@@ -359,7 +363,7 @@ export interface ImageChannelCreate {
   max_concurrent?: number;
   weight?: number;
   enabled?: boolean;
-  extra_config?: Record<string, any> | null;
+  extra_config?: Record<string, unknown> | null;
 }
 
 export interface ImageChannelUpdate {
@@ -371,7 +375,7 @@ export interface ImageChannelUpdate {
   max_concurrent?: number;
   weight?: number;
   enabled?: boolean;
-  extra_config?: Record<string, any> | null;
+  extra_config?: Record<string, unknown> | null;
 }
 
 export interface ChannelOverview {

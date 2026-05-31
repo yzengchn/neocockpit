@@ -9,6 +9,7 @@ import {
   ApiOutlined,
 } from '@ant-design/icons';
 import { adminChannelApi } from '@/services/admin';
+import { ADMIN_QUERY_KEYS } from '@/constants/queryKeys';
 import type { ImageChannel, ImageChannelCreate, ImageChannelUpdate } from '@/types/task';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -38,6 +39,10 @@ const NEW_FORM_VALUES: ImageChannelCreate = {
   ...DEFAULT_FORM_VALUES,
 };
 
+type ChannelFormValues = Omit<ImageChannelCreate, 'extra_config'> & {
+  extra_config?: Record<string, unknown> | string | null;
+};
+
 function toFormValues(channel: ImageChannel): ImageChannelCreate {
   return {
     provider: channel.provider,
@@ -60,7 +65,7 @@ const ChannelModal: React.FC<{
   onOk: (values: ImageChannelCreate) => void;
   onCancel: () => void;
 }> = ({ open, editing, onOk, onCancel }) => {
-  const [form] = Form.useForm<ImageChannelCreate>();
+  const [form] = Form.useForm<ChannelFormValues>();
 
   return (
     <Modal
@@ -68,11 +73,17 @@ const ChannelModal: React.FC<{
       open={open}
       onOk={() =>
         form.validateFields().then((values) => {
+          if (typeof values.extra_config === 'string') {
+            message.error('扩展配置 JSON 格式错误');
+            return;
+          }
+
           // Clean empty strings to null for optional fields
           const cleaned: ImageChannelCreate = {
             ...values,
             api_key: values.api_key || null,
             model: values.model || null,
+            extra_config: values.extra_config ?? null,
           };
           onOk(cleaned);
         })
@@ -118,10 +129,18 @@ const ChannelModal: React.FC<{
           getValueFromEvent={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
             const raw = e.target.value?.trim();
             if (!raw) return null;
-            try { return JSON.parse(raw); } catch { return raw; }
+            try {
+              const parsed = JSON.parse(raw);
+              if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+                return raw;
+              }
+              return parsed as Record<string, unknown>;
+            } catch {
+              return raw;
+            }
           }}
-          getValueProps={(v: Record<string, unknown> | null | undefined) => ({
-            value: v ? JSON.stringify(v, null, 2) : '',
+          getValueProps={(v: Record<string, unknown> | string | null | undefined) => ({
+            value: typeof v === 'string' ? v : v ? JSON.stringify(v, null, 2) : '',
           })}
         >
           <Input.TextArea
@@ -146,45 +165,36 @@ export const ChannelPanel: React.FC = () => {
   const [editing, setEditing] = useState<ImageChannel | null>(null);
 
   const { data: items = [], isLoading } = useQuery({
-    queryKey: ['image-channels'],
+    queryKey: ADMIN_QUERY_KEYS.imageChannels,
     queryFn: () => adminChannelApi.listAll(),
   });
 
   const createMut = useMutation({
     mutationFn: (v: ImageChannelCreate) => adminChannelApi.create(v),
-    onSuccess: () => { message.success('渠道添加成功'); queryClient.invalidateQueries({ queryKey: ['image-channels'] }); },
+    onSuccess: () => { message.success('渠道添加成功'); queryClient.invalidateQueries({ queryKey: ADMIN_QUERY_KEYS.imageChannels }); },
     onError: () => message.error('渠道添加失败'),
   });
 
   const updateMut = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<ImageChannelUpdate> }) => adminChannelApi.update(id, data),
-    onSuccess: () => { message.success('渠道更新成功'); queryClient.invalidateQueries({ queryKey: ['image-channels'] }); },
+    onSuccess: () => { message.success('渠道更新成功'); queryClient.invalidateQueries({ queryKey: ADMIN_QUERY_KEYS.imageChannels }); },
     onError: () => message.error('渠道更新失败'),
   });
 
   const deleteMut = useMutation({
     mutationFn: (id: string) => adminChannelApi.delete(id),
-    onSuccess: () => { message.success('渠道删除成功'); queryClient.invalidateQueries({ queryKey: ['image-channels'] }); },
+    onSuccess: () => { message.success('渠道删除成功'); queryClient.invalidateQueries({ queryKey: ADMIN_QUERY_KEYS.imageChannels }); },
     onError: () => message.error('渠道删除失败'),
   });
 
   const handleOk = (values: ImageChannelCreate) => {
     if (editing) {
-      updateMut.mutate({ id: editing.id, data: values as ImageChannelUpdate });
+      updateMut.mutate({ id: editing.id, data: values });
     } else {
-      createMut.mutate(values as ImageChannelCreate);
+      createMut.mutate(values);
     }
     setModalOpen(false);
     setEditing(null);
-  };
-
-  // Validate extra_config is valid JSON object before submit
-  const handleModalOk = (values: ImageChannelCreate) => {
-    if (values.extra_config && typeof values.extra_config === 'string') {
-      message.error('扩展配置 JSON 格式错误');
-      return;
-    }
-    handleOk(values);
   };
 
   const providerStats = useMemo(() => {
@@ -260,7 +270,7 @@ export const ChannelPanel: React.FC = () => {
         </Space>
       </div>
       <Table className="admin-table" columns={columns} dataSource={items} rowKey="id" loading={isLoading} pagination={false} size="small" scroll={{ x: 1060 }} />
-      <ChannelModal open={modalOpen} editing={editing} onOk={handleModalOk} onCancel={() => { setModalOpen(false); setEditing(null); }} />
+      <ChannelModal open={modalOpen} editing={editing} onOk={handleOk} onCancel={() => { setModalOpen(false); setEditing(null); }} />
     </>
   );
 };

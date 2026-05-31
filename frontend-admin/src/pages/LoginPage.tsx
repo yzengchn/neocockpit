@@ -4,6 +4,7 @@ import { Form, Input, Button, message, Card } from 'antd';
 import { LockOutlined, UserOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 import { authApi } from '@/services/api';
 import { setAdminToken } from '@/services/adminToken';
+import { getApiErrorMessage } from '@/utils/format';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -16,9 +17,8 @@ export const LoginPage: React.FC = () => {
       setAdminToken(token);
       message.success('登录成功');
       navigate('/admin');
-    } catch (err: any) {
-      const detail = err?.response?.data?.detail || '登录失败';
-      message.error(detail);
+    } catch (err: unknown) {
+      message.error(getApiErrorMessage(err, '登录失败'));
     } finally {
       setLoading(false);
     }

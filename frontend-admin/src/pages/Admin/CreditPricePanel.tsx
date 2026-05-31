@@ -3,7 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Table, InputNumber, Button, message, Tag, Modal, Input, Popconfirm } from 'antd';
 import { DollarOutlined, SaveOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { adminCreditPriceApi } from '@/services/admin';
-import type { CreditPrice, CreditPriceCreate } from '@/types/task';
+import { ADMIN_QUERY_KEYS } from '@/constants/queryKeys';
+import { getApiErrorMessage } from '@/utils/format';
+import type { CreditPrice, CreditPriceCreate, CreditPriceUpdate } from '@/types/task';
+import type { ColumnsType } from 'antd/es/table';
 
 export const CreditPricePanel: React.FC = () => {
   const queryClient = useQueryClient();
@@ -15,17 +18,17 @@ export const CreditPricePanel: React.FC = () => {
   const [newPrice, setNewPrice] = useState(5);
 
   const { data: prices = [], isLoading } = useQuery({
-    queryKey: ['admin-credit-prices'],
+    queryKey: ADMIN_QUERY_KEYS.creditPrices,
     queryFn: () => adminCreditPriceApi.list(),
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { price?: number; label?: string; sort_order?: number } }) =>
+    mutationFn: ({ id, data }: { id: string; data: CreditPriceUpdate }) =>
       adminCreditPriceApi.update(id, data),
     onSuccess: () => {
       message.success('积分单价已更新');
       setEditingId(null);
-      queryClient.invalidateQueries({ queryKey: ['admin-credit-prices'] });
+      queryClient.invalidateQueries({ queryKey: ADMIN_QUERY_KEYS.creditPrices });
     },
     onError: () => message.error('更新失败'),
   });
@@ -38,10 +41,10 @@ export const CreditPricePanel: React.FC = () => {
       setNewAction('');
       setNewLabel('');
       setNewPrice(5);
-      queryClient.invalidateQueries({ queryKey: ['admin-credit-prices'] });
+      queryClient.invalidateQueries({ queryKey: ADMIN_QUERY_KEYS.creditPrices });
     },
-    onError: (err: any) => {
-      message.error(err?.response?.data?.detail || '创建失败');
+    onError: (err: unknown) => {
+      message.error(getApiErrorMessage(err, '创建失败'));
     },
   });
 
@@ -49,12 +52,12 @@ export const CreditPricePanel: React.FC = () => {
     mutationFn: (id: string) => adminCreditPriceApi.delete(id),
     onSuccess: () => {
       message.success('积分配置已删除');
-      queryClient.invalidateQueries({ queryKey: ['admin-credit-prices'] });
+      queryClient.invalidateQueries({ queryKey: ADMIN_QUERY_KEYS.creditPrices });
     },
     onError: () => message.error('删除失败'),
   });
 
-  const columns = [
+  const columns: ColumnsType<CreditPrice> = [
     {
       title: '操作类型',
       dataIndex: 'label',

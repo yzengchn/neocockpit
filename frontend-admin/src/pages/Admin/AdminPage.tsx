@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, type QueryKey } from '@tanstack/react-query';
 import { Card, Button, Space, Spin, Tabs } from 'antd';
 import {
   ReloadOutlined, HomeOutlined,
@@ -13,6 +13,8 @@ import {
 } from '@ant-design/icons';
 import { clearAdminToken } from '@/services/adminToken';
 import { glassCard, gradientHeading } from '@/constants/styles';
+import { ADMIN_QUERY_KEYS } from '@/constants/queryKeys';
+import { getWebHomeUrl } from '@/utils/webUrl';
 
 const TaskPanel = lazy(() => import('@/pages/Admin/TaskPanel').then(({ TaskPanel }) => ({ default: TaskPanel })));
 const IconPanel = lazy(() => import('@/pages/Admin/IconPanel').then(({ IconPanel }) => ({ default: IconPanel })));
@@ -37,16 +39,16 @@ const ADMIN_TABS: Array<{
   key: AdminTabKey;
   label: React.ReactNode;
   Component: React.LazyExoticComponent<React.ComponentType>;
-  queryKeys: string[][];
+  queryKeys: QueryKey[];
 }> = [
-  { key: 'tasks', label: '任务管理', Component: TaskPanel, queryKeys: [['tasks']] },
-  { key: 'icon-descriptions', label: <span><AppstoreOutlined /> 图标描述</span>, Component: IconPanel, queryKeys: [['icon-descriptions']] },
-  { key: 'ai-providers', label: <span><CloudServerOutlined /> AI 提供商</span>, Component: ProviderPanel, queryKeys: [['ai-providers']] },
-  { key: 'image-channels', label: <span><ApiOutlined /> 图片渠道</span>, Component: ChannelPanel, queryKeys: [['image-channels']] },
-  { key: 'users', label: <span><UserOutlined /> 用户管理</span>, Component: UserPanel, queryKeys: [['admin-users']] },
-  { key: 'credit-prices', label: <span><DollarOutlined /> 积分单价</span>, Component: CreditPricePanel, queryKeys: [['admin-credit-prices']] },
-  { key: 'downloads', label: <span><DownloadOutlined /> 积分记录</span>, Component: DownloadPanel, queryKeys: [['admin-downloads'], ['admin-download-stats']] },
-  { key: 'notifications', label: <span><BellOutlined /> 通知发布</span>, Component: NotificationPanel, queryKeys: [['admin-notifications']] },
+  { key: 'tasks', label: '任务管理', Component: TaskPanel, queryKeys: [ADMIN_QUERY_KEYS.tasks] },
+  { key: 'icon-descriptions', label: <span><AppstoreOutlined /> 图标描述</span>, Component: IconPanel, queryKeys: [ADMIN_QUERY_KEYS.iconDescriptions] },
+  { key: 'ai-providers', label: <span><CloudServerOutlined /> AI 提供商</span>, Component: ProviderPanel, queryKeys: [ADMIN_QUERY_KEYS.aiProviders] },
+  { key: 'image-channels', label: <span><ApiOutlined /> 图片渠道</span>, Component: ChannelPanel, queryKeys: [ADMIN_QUERY_KEYS.imageChannels] },
+  { key: 'users', label: <span><UserOutlined /> 用户管理</span>, Component: UserPanel, queryKeys: [ADMIN_QUERY_KEYS.users] },
+  { key: 'credit-prices', label: <span><DollarOutlined /> 积分单价</span>, Component: CreditPricePanel, queryKeys: [ADMIN_QUERY_KEYS.creditPrices] },
+  { key: 'downloads', label: <span><DownloadOutlined /> 积分记录</span>, Component: DownloadPanel, queryKeys: [ADMIN_QUERY_KEYS.downloadList, ADMIN_QUERY_KEYS.downloadStats] },
+  { key: 'notifications', label: <span><BellOutlined /> 公告通知</span>, Component: NotificationPanel, queryKeys: [ADMIN_QUERY_KEYS.notifications] },
 ];
 
 const PanelFallback: React.FC = () => (
@@ -120,7 +122,7 @@ export const AdminPage: React.FC = () => {
           </h2>
           <Space wrap>
             <Button icon={<ReloadOutlined />} onClick={handleRefresh} loading={refreshing}>刷新</Button>
-            <Button type="primary" icon={<HomeOutlined />} onClick={() => navigate('/')} className="neon-btn">返回首页</Button>
+            <Button type="primary" icon={<HomeOutlined />} href={getWebHomeUrl()} className="neon-btn">返回首页</Button>
             <Button danger icon={<LogoutOutlined />} onClick={() => { clearAdminToken(); navigate('/admin/login'); }}>退出登录</Button>
           </Space>
         </div>

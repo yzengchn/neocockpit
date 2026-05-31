@@ -10,6 +10,8 @@ import {
   DollarOutlined,
 } from '@ant-design/icons';
 import { adminUserApi } from '@/services/admin';
+import { ADMIN_QUERY_KEYS } from '@/constants/queryKeys';
+import { formatDateTime } from '@/utils/format';
 import type { UserAdmin, UserAdminUpdate, SignatureView } from '@/types/task';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -82,19 +84,19 @@ export const UserPanel: React.FC = () => {
   const [rechargeAmount, setRechargeAmount] = useState<number>(10);
 
   const { data: users = [], isLoading, refetch } = useQuery({
-    queryKey: ['admin-users'],
+    queryKey: ADMIN_QUERY_KEYS.users,
     queryFn: () => adminUserApi.listUsers(0, 200),
   });
 
   const updateMut = useMutation({
     mutationFn: ({ id, data }: { id: string; data: UserAdminUpdate }) => adminUserApi.updateUser(id, data),
-    onSuccess: () => { message.success('更新成功'); queryClient.invalidateQueries({ queryKey: ['admin-users'] }); setEditModalOpen(false); },
+    onSuccess: () => { message.success('更新成功'); queryClient.invalidateQueries({ queryKey: ADMIN_QUERY_KEYS.users }); setEditModalOpen(false); },
     onError: () => message.error('更新失败'),
   });
 
   const deleteMut = useMutation({
     mutationFn: (id: string) => adminUserApi.deleteUser(id),
-    onSuccess: () => { message.success('删除成功'); queryClient.invalidateQueries({ queryKey: ['admin-users'] }); },
+    onSuccess: () => { message.success('删除成功'); queryClient.invalidateQueries({ queryKey: ADMIN_QUERY_KEYS.users }); },
     onError: () => message.error('删除失败'),
   });
 
@@ -102,7 +104,7 @@ export const UserPanel: React.FC = () => {
     mutationFn: ({ id, amount }: { id: string; amount: number }) => adminUserApi.recharge(id, amount),
     onSuccess: (user) => {
       message.success(`充值成功，当前积分: ${user.credits}`);
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      queryClient.invalidateQueries({ queryKey: ADMIN_QUERY_KEYS.users });
       setRechargeModalOpen(false);
     },
     onError: () => message.error('充值失败'),
@@ -169,7 +171,7 @@ export const UserPanel: React.FC = () => {
     {
       title: '注册时间', dataIndex: 'created_at', key: 'created_at', width: 170,
       render: (date: string) => date
-        ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--c-text-secondary)' }}>{new Date(date).toLocaleString('zh-CN')}</span>
+        ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--c-text-secondary)' }}>{formatDateTime(date)}</span>
         : '-',
     },
     {
@@ -248,7 +250,7 @@ export const UserPanel: React.FC = () => {
           <div style={{ color: 'var(--c-text-secondary)', fontSize: 12 }}>
             ID: {editingUser.id}<br />
             积分: <span style={{ color: '#f59e0b', fontWeight: 600 }}>{editingUser.credits}</span><br />
-            注册时间: {editingUser.created_at ? new Date(editingUser.created_at).toLocaleString('zh-CN') : '-'}
+            注册时间: {formatDateTime(editingUser.created_at)}
           </div>
         )}
       </Modal>

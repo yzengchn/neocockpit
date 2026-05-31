@@ -1,27 +1,20 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Table, Button, Tag, Input, Select,
+  Table, Button, Input, Select,
 } from 'antd';
 import {
   ReloadOutlined, SearchOutlined,
 } from '@ant-design/icons';
 import { adminDownloadApi } from '@/services/admin';
-import type { CreditLogItem, CreditStats } from '@/types/task';
+import { ActionTag, CreditDeltaTag } from '@/components/admin/TableTags';
+import { ADMIN_QUERY_KEYS } from '@/constants/queryKeys';
+import { formatDateTime } from '@/utils/format';
+import type { CreditLogItem } from '@/types/task';
 import { ACTION_LABELS } from '@/types/task';
 import type { ColumnsType } from 'antd/es/table';
 
 const { Search } = Input;
-
-const ACTION_COLORS: Record<string, string> = {
-  theme: '#6366f1',
-  digital_human: '#a78bfa',
-  diy: '#f59e0b',
-  download: '#06b6d4',
-  recharge: '#22c55e',
-  check_in: '#eab308',
-  liked: '#ef4444',
-};
 
 export const DownloadPanel: React.FC = () => {
   const [userFilter, setUserFilter] = useState<string | undefined>();
@@ -29,12 +22,12 @@ export const DownloadPanel: React.FC = () => {
   const [actionFilter, setActionFilter] = useState<string | undefined>();
 
   const { data: logs = [], isLoading, refetch } = useQuery({
-    queryKey: ['admin-downloads', userFilter, taskFilter, actionFilter],
+    queryKey: ADMIN_QUERY_KEYS.downloads(userFilter, taskFilter, actionFilter),
     queryFn: () => adminDownloadApi.list(0, 200, userFilter, taskFilter, actionFilter),
   });
 
   const { data: stats } = useQuery({
-    queryKey: ['admin-download-stats'],
+    queryKey: ADMIN_QUERY_KEYS.downloadStats,
     queryFn: () => adminDownloadApi.stats(),
   });
 
@@ -51,17 +44,7 @@ export const DownloadPanel: React.FC = () => {
     },
     {
       title: "操作类型", dataIndex: "action", key: "action", width: 120,
-      render: (action: string) => {
-        const color = ACTION_COLORS[action] || "var(--c-primary)";
-        return (
-          <Tag style={{
-            fontSize: 11, fontWeight: 700,
-            background: color + "18", color, borderColor: color + "35",
-          }}>
-            {ACTION_LABELS[action] || action}
-          </Tag>
-        );
-      },
+      render: (action: string) => <ActionTag action={action} />,
     },
     {
       title: "目标ID", dataIndex: "target_id", key: "target_id", width: 110,
@@ -71,9 +54,7 @@ export const DownloadPanel: React.FC = () => {
     },
     {
       title: "积分变动", dataIndex: "credits_cost", key: "credits_cost", width: 90,
-      render: (cost: number) => cost < 0
-        ? <Tag style={{ borderRadius: "var(--radius-xs)", fontWeight: 600, background: "rgba(34,197,94,0.12)", color: "#22c55e", borderColor: "rgba(34,197,94,0.3)" }}>+{Math.abs(cost)}</Tag>
-        : <Tag style={{ borderRadius: "var(--radius-xs)", fontWeight: 600, background: "rgba(239,68,68,0.12)", color: "#ef4444", borderColor: "rgba(239,68,68,0.3)" }}>-{cost}</Tag>,
+      render: (cost: number) => <CreditDeltaTag value={cost} />,
     },
     {
       title: "剩余积分", dataIndex: "credits_after", key: "credits_after", width: 90,
@@ -82,7 +63,7 @@ export const DownloadPanel: React.FC = () => {
     {
       title: "时间", dataIndex: "created_at", key: "created_at", width: 170,
       render: (date: string) => date
-        ? <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--c-text-secondary)" }}>{new Date(date).toLocaleString("zh-CN")}</span>
+        ? <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--c-text-secondary)" }}>{formatDateTime(date)}</span>
         : "-",
     },
   ];
@@ -98,10 +79,10 @@ export const DownloadPanel: React.FC = () => {
           marginBottom: 20,
         }}>
           {[
-            { label: "总记录", value: (stats as CreditStats).total_records, color: "var(--c-primary)" },
-            { label: "消耗积分", value: (stats as CreditStats).total_credits_spent, color: "#f97316" },
-            { label: "活跃用户", value: (stats as CreditStats).unique_users, color: "var(--c-accent)" },
-            { label: "任务数", value: (stats as CreditStats).unique_tasks, color: "#a78bfa" },
+            { label: "总记录", value: stats.total_records, color: "var(--c-primary)" },
+            { label: "消耗积分", value: stats.total_credits_spent, color: "#f97316" },
+            { label: "活跃用户", value: stats.unique_users, color: "var(--c-accent)" },
+            { label: "任务数", value: stats.unique_tasks, color: "#a78bfa" },
           ].map(item => (
             <div key={item.label} style={{
               background: "var(--c-bg-card-solid)",

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Table, Button, Tag, message, Popconfirm,
+  Table, Button, message, Popconfirm,
   Input, Select,
 } from 'antd';
 import {
@@ -9,37 +9,15 @@ import {
 } from '@ant-design/icons';
 import { taskApi } from '@/services/api';
 import { adminTaskApi } from '@/services/admin';
-import { Task, TaskStatus, AIProvider, TaskType } from '@/types/task';
-import { statusConfig } from '@/constants/status';
+import { Task, TaskStatus } from '@/types/task';
+import { TASK_STATUS_FILTER_OPTIONS, TASK_TYPE_OPTIONS } from '@/constants/adminMeta';
+import { ADMIN_QUERY_KEYS } from '@/constants/queryKeys';
+import { ProviderTag, TaskStatusTag, TaskTypeTag } from '@/components/admin/TableTags';
+import { formatDateTime } from '@/utils/format';
+import { getWebTaskDetailUrl } from '@/utils/webUrl';
 import type { ColumnsType } from 'antd/es/table';
 
 const { Search } = Input;
-
-const providerConfig: Record<string, { color: string; text: string }> = {
-  [AIProvider.OPENAI]: { color: '#6366f1', text: 'OpenAI' },
-  [AIProvider.DOUBAO]: { color: '#d946ef', text: '豆包' },
-  [AIProvider.DASHSCOPE]: { color: '#06b6d4', text: '阿里云' },
-};
-
-const taskTypeConfig: Record<string, { color: string; text: string }> = {
-  [TaskType.WALLPAPER]: { color: 'green', text: '壁纸' },
-  [TaskType.THEME]: { color: 'blue', text: '主题' },
-  [TaskType.DIGITAL_HUMAN]: { color: 'purple', text: '数字人' },
-  [TaskType.DIY]: { color: 'orange', text: 'DIY生图' },
-};
-
-const getTaskDetailUrl = (taskId: string) => {
-  const configuredBaseUrl = String(import.meta.env.VITE_WEB_BASE_URL || '').trim();
-  const baseUrl = configuredBaseUrl || (() => {
-    const url = new URL(window.location.origin);
-    if (url.port === '5174') {
-      url.port = '5173';
-    }
-    return url.toString();
-  })();
-
-  return new URL(`/tasks/${taskId}`, baseUrl).toString();
-};
 
 export const TaskPanel: React.FC = () => {
   const queryClient = useQueryClient();
@@ -49,13 +27,13 @@ export const TaskPanel: React.FC = () => {
   const [authorFilter, setAuthorFilter] = useState<string | undefined>();
 
   const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ['tasks'],
+    queryKey: ADMIN_QUERY_KEYS.tasks,
     queryFn: () => taskApi.listTasks(),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => adminTaskApi.deleteTask(id),
-    onSuccess: () => { message.success('任务已删除'); queryClient.invalidateQueries({ queryKey: ['tasks'] }); },
+    onSuccess: () => { message.success('任务已删除'); queryClient.invalidateQueries({ queryKey: ADMIN_QUERY_KEYS.tasks }); },
     onError: () => message.error('删除失败'),
   });
 
@@ -97,11 +75,7 @@ export const TaskPanel: React.FC = () => {
     },
     {
       title: '类型', dataIndex: 'task_type', key: 'task_type', width: 90,
-      render: (type: string) => {
-        const cfg = taskTypeConfig[type];
-        if (!cfg) return <span>{type}</span>;
-        return <Tag color={cfg.color} style={{ borderRadius: 'var(--radius-xs)' }}>{cfg.text}</Tag>;
-      },
+      render: (type: string) => <TaskTypeTag type={type} />,
     },
     {
       title: '作者', dataIndex: 'author', key: 'author', width: 100,
@@ -115,42 +89,25 @@ export const TaskPanel: React.FC = () => {
     },
     {
       title: 'AI供应商', dataIndex: 'ai_provider', key: 'ai_provider', width: 110,
-      render: (provider: string) => {
-        const config = providerConfig[provider];
-        if (!config) return <span style={{ color: 'var(--c-text-muted)' }}>{provider}</span>;
-        return (
-          <Tag style={{
-            borderRadius: 'var(--radius-xs)',
-            background: `${config.color}12`,
-            color: config.color,
-            border: `1px solid ${config.color}25`,
-            fontWeight: 600,
-          }}>
-            {config.text}
-          </Tag>
-        );
-      },
+      render: (provider: string | undefined) => <ProviderTag provider={provider} />,
     },
     {
       title: '状态', dataIndex: 'status', key: 'status', width: 110,
-      render: (status: TaskStatus) => {
-        const config = statusConfig[status];
-        return (
-          <Tag style={{
-            borderRadius: 'var(--radius-xs)',
-            background: `${config.color}12`,
-            color: config.color,
-            border: `1px solid ${config.color}25`,
-            fontWeight: 600,
-          }}>
-            {config.text}
-          </Tag>
-        );
-      },
+      render: (status: TaskStatus) => <TaskStatusTag status={status} />,
+    },
+    {
+      title: '浏览量', dataIndex: 'views', key: 'views', width: 90, align: 'right',
+      sorter: (a, b) => (a.views ?? 0) - (b.views ?? 0),
+      render: (views: number | undefined) => (
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--c-text-secondary)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <EyeOutlined />
+          {views ?? 0}
+        </span>
+      ),
     },
     {
       title: '创建时间', dataIndex: 'created_at', key: 'created_at', width: 170,
-      render: (date: string) => <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--c-text-secondary)' }}>{new Date(date).toLocaleString('zh-CN')}</span>,
+      render: (date: string) => <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--c-text-secondary)' }}>{formatDateTime(date)}</span>,
     },
     {
       title: '操作', key: 'action', width: 140, align: 'right',
@@ -160,7 +117,7 @@ export const TaskPanel: React.FC = () => {
             type="link"
             size="small"
             icon={<EyeOutlined />}
-            href={getTaskDetailUrl(record.id)}
+            href={getWebTaskDetailUrl(record.id)}
             target="_blank"
             rel="noopener noreferrer"
             title="在新标签打开任务详情"
@@ -191,12 +148,7 @@ export const TaskPanel: React.FC = () => {
           style={{ width: 120 }}
           value={typeFilter}
           onChange={setTypeFilter}
-          options={[
-            { label: '壁纸', value: TaskType.WALLPAPER },
-            { label: '车载主题', value: TaskType.THEME },
-            { label: '数字人', value: TaskType.DIGITAL_HUMAN },
-            { label: 'DIY生图', value: TaskType.DIY },
-          ]}
+          options={[...TASK_TYPE_OPTIONS]}
         />
         <Select
           placeholder="作者"
@@ -214,18 +166,7 @@ export const TaskPanel: React.FC = () => {
           style={{ width: 140 }}
           value={statusFilter}
           onChange={setStatusFilter}
-          options={[
-            { label: '✅ 成功', value: TaskStatus.COMPLETED },
-            { label: '❌ 失败', value: TaskStatus.FAILED },
-            { label: '⏳ 排队中', value: TaskStatus.QUEUED },
-            { label: '🔄 处理中', value: TaskStatus.PROCESSING },
-            { label: '🖼️ 生成背景', value: TaskStatus.GENERATING_BG },
-            { label: '🎨 生成图标', value: TaskStatus.GENERATING_ICONS },
-            { label: '👤 生成肖像', value: TaskStatus.GENERATING_AVATAR },
-            { label: '🧵 生成纹理', value: TaskStatus.GENERATING_TEXTURES },
-            { label: '✂️ 切片', value: TaskStatus.SLICING },
-            { label: '📦 合成', value: TaskStatus.COMPOSITING },
-          ]}
+          options={[...TASK_STATUS_FILTER_OPTIONS]}
         />
       </div>
       <Table
@@ -235,7 +176,7 @@ export const TaskPanel: React.FC = () => {
         rowKey="id"
         loading={isLoading}
         pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
-        scroll={{ x: 1180 }}
+        scroll={{ x: 1260 }}
       />
     </>
   );

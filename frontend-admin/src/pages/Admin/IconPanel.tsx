@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Table, Button, Tag, message, Popconfirm,
+  Table, Button, message, Popconfirm,
   Input, Form, Modal, Switch, InputNumber,
 } from 'antd';
 import {
   DeleteOutlined, PlusOutlined, EditOutlined,
 } from '@ant-design/icons';
 import { adminIconApi } from '@/services/admin';
+import { EnabledTag } from '@/components/admin/TableTags';
+import { ADMIN_QUERY_KEYS } from '@/constants/queryKeys';
 import type { IconDescription, IconDescriptionCreate, IconDescriptionUpdate } from '@/types/task';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -80,25 +82,25 @@ export const IconPanel: React.FC = () => {
   const [editing, setEditing] = useState<IconDescription | null>(null);
 
   const { data: items = [], isLoading } = useQuery({
-    queryKey: ['icon-descriptions'],
+    queryKey: ADMIN_QUERY_KEYS.iconDescriptions,
     queryFn: () => adminIconApi.listAll(),
   });
 
   const createMut = useMutation({
-    mutationFn: (v: IconDescFormValues) => adminIconApi.create(v as IconDescriptionCreate),
-    onSuccess: () => { message.success('添加成功'); queryClient.invalidateQueries({ queryKey: ['icon-descriptions'] }); },
+    mutationFn: (v: IconDescriptionCreate) => adminIconApi.create(v),
+    onSuccess: () => { message.success('添加成功'); queryClient.invalidateQueries({ queryKey: ADMIN_QUERY_KEYS.iconDescriptions }); },
     onError: () => message.error('添加失败'),
   });
 
   const updateMut = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<IconDescFormValues> }) => adminIconApi.update(id, data as IconDescriptionUpdate),
-    onSuccess: () => { message.success('更新成功'); queryClient.invalidateQueries({ queryKey: ['icon-descriptions'] }); },
+    mutationFn: ({ id, data }: { id: string; data: IconDescriptionUpdate }) => adminIconApi.update(id, data),
+    onSuccess: () => { message.success('更新成功'); queryClient.invalidateQueries({ queryKey: ADMIN_QUERY_KEYS.iconDescriptions }); },
     onError: () => message.error('更新失败'),
   });
 
   const deleteMut = useMutation({
     mutationFn: (id: string) => adminIconApi.delete(id),
-    onSuccess: () => { message.success('删除成功'); queryClient.invalidateQueries({ queryKey: ['icon-descriptions'] }); },
+    onSuccess: () => { message.success('删除成功'); queryClient.invalidateQueries({ queryKey: ADMIN_QUERY_KEYS.iconDescriptions }); },
     onError: () => message.error('删除失败'),
   });
 
@@ -120,11 +122,7 @@ export const IconPanel: React.FC = () => {
     { title: '描述', dataIndex: 'description', key: 'description', ellipsis: true },
     {
       title: '启用', dataIndex: 'enabled', key: 'enabled', width: 80,
-      render: (v: boolean) => (
-        <Tag color={v ? 'green' : 'default'} style={{ borderRadius: 'var(--radius-xs)', fontSize: 12 }}>
-          {v ? '启用' : '禁用'}
-        </Tag>
-      ),
+      render: (v: boolean) => <EnabledTag enabled={v} />,
     },
     { title: '排序', dataIndex: 'sort_order', key: 'sort_order', width: 80 },
     {

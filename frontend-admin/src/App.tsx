@@ -34,16 +34,27 @@ const AdminGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
     const token = getAdminToken();
     if (!token) {
       setChecking(false);
-      return;
+      return undefined;
     }
     authApi
       .verify(token)
-      .then((valid) => setAuthorized(valid))
-      .catch(() => setAuthorized(false))
-      .finally(() => setChecking(false));
+      .then((valid) => {
+        if (mounted) setAuthorized(valid);
+      })
+      .catch(() => {
+        if (mounted) setAuthorized(false);
+      })
+      .finally(() => {
+        if (mounted) setChecking(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   if (checking) {

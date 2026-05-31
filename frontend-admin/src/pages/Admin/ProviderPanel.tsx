@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Table, Button, Tag, message, Popconfirm,
+  Table, Button, message, Popconfirm,
   Input, Form, Modal, Switch, InputNumber,
 } from 'antd';
 import {
   DeleteOutlined, PlusOutlined, EditOutlined,
 } from '@ant-design/icons';
 import { adminProviderApi } from '@/services/admin';
+import { EnabledTag } from '@/components/admin/TableTags';
+import { ADMIN_QUERY_KEYS } from '@/constants/queryKeys';
 import type { AIProviderConfig, AIProviderConfigCreate, AIProviderConfigUpdate } from '@/types/task';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -73,25 +75,25 @@ export const ProviderPanel: React.FC = () => {
   const [editing, setEditing] = useState<AIProviderConfig | null>(null);
 
   const { data: items = [], isLoading } = useQuery({
-    queryKey: ['ai-providers'],
+    queryKey: ADMIN_QUERY_KEYS.aiProviders,
     queryFn: () => adminProviderApi.listAll(),
   });
 
   const createMut = useMutation({
-    mutationFn: (v: AIProviderFormValues) => adminProviderApi.create(v as AIProviderConfigCreate),
-    onSuccess: () => { message.success('添加成功'); queryClient.invalidateQueries({ queryKey: ['ai-providers'] }); },
+    mutationFn: (v: AIProviderConfigCreate) => adminProviderApi.create(v),
+    onSuccess: () => { message.success('添加成功'); queryClient.invalidateQueries({ queryKey: ADMIN_QUERY_KEYS.aiProviders }); },
     onError: () => message.error('添加失败'),
   });
 
   const updateMut = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<AIProviderFormValues> }) => adminProviderApi.update(id, data as AIProviderConfigUpdate),
-    onSuccess: () => { message.success('更新成功'); queryClient.invalidateQueries({ queryKey: ['ai-providers'] }); },
+    mutationFn: ({ id, data }: { id: string; data: AIProviderConfigUpdate }) => adminProviderApi.update(id, data),
+    onSuccess: () => { message.success('更新成功'); queryClient.invalidateQueries({ queryKey: ADMIN_QUERY_KEYS.aiProviders }); },
     onError: () => message.error('更新失败'),
   });
 
   const deleteMut = useMutation({
     mutationFn: (id: string) => adminProviderApi.delete(id),
-    onSuccess: () => { message.success('删除成功'); queryClient.invalidateQueries({ queryKey: ['ai-providers'] }); },
+    onSuccess: () => { message.success('删除成功'); queryClient.invalidateQueries({ queryKey: ADMIN_QUERY_KEYS.aiProviders }); },
     onError: () => message.error('删除失败'),
   });
 
@@ -112,11 +114,7 @@ export const ProviderPanel: React.FC = () => {
     },
     {
       title: '启用', dataIndex: 'enabled', key: 'enabled', width: 80,
-      render: (v: boolean) => (
-        <Tag color={v ? 'green' : 'default'} style={{ borderRadius: 'var(--radius-xs)', fontSize: 12 }}>
-          {v ? '启用' : '禁用'}
-        </Tag>
-      ),
+      render: (v: boolean) => <EnabledTag enabled={v} />,
     },
     { title: '排序', dataIndex: 'sort_order', key: 'sort_order', width: 80 },
     {
