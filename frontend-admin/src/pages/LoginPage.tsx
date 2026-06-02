@@ -16,7 +16,7 @@ export const LoginPage: React.FC = () => {
       const { token } = await authApi.login(values.username, values.password);
       setAdminToken(token);
       message.success('登录成功');
-      navigate('/admin');
+      navigate('/');
     } catch (err: unknown) {
       message.error(getApiErrorMessage(err, '登录失败'));
     } finally {

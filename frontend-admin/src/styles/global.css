@@ -260,17 +260,242 @@ code { font-family: var(--font-mono); }
 .admin-table-actions .ant-switch {
   flex: 0 0 auto;
 }
-.admin-shell,
-.admin-shell .ant-card-body,
-.admin-shell .ant-tabs,
-.admin-shell .ant-tabs-content-holder,
-.admin-shell .ant-tabs-content,
-.admin-shell .ant-tabs-tabpane {
+/* ── Admin shell: left nav + right tab pages ───── */
+.admin-page-frame {
+  min-height: 100vh;
+  padding: 20px;
+}
+.admin-layout-shell {
+  min-height: calc(100vh - 40px);
+  overflow: hidden;
+  background: rgba(8, 9, 13, 0.72) !important;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+.admin-sider {
+  background: rgba(11, 13, 20, 0.94) !important;
+  border-right: 1px solid var(--c-border);
+}
+.admin-sider .ant-layout-sider-children {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  padding: 14px 8px;
+}
+.admin-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  margin-bottom: 14px;
+  padding: 0 4px;
+}
+.admin-brand-mark {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  place-items: center;
+  border: 1px solid var(--c-border-active);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.26), rgba(6, 182, 212, 0.14));
+  color: #fff;
+  font-family: var(--font-mono);
+  font-weight: 800;
+  box-shadow: 0 0 16px rgba(99, 102, 241, 0.18);
+}
+.admin-brand-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  line-height: 1;
+}
+.admin-brand-text span {
+  overflow: hidden;
+  color: var(--c-text);
+  font-size: 13px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-brand-text small {
+  color: var(--c-text-muted);
+  font-size: 11px;
+}
+.admin-sider-toggle {
+  width: 26px !important;
+  height: 26px !important;
+  margin-left: auto;
+  flex: 0 0 26px;
+  border: 1px solid var(--c-border) !important;
+  border-radius: 8px !important;
+  color: var(--c-text-secondary) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+.admin-sider-toggle:hover {
+  border-color: var(--c-border-active) !important;
+  color: #fff !important;
+  background: rgba(99, 102, 241, 0.12) !important;
+}
+.admin-sider .ant-menu {
+  flex: 1;
+  background: transparent !important;
+  border-inline-end: 0 !important;
+}
+.admin-sider .ant-menu-item {
+  width: 100% !important;
+  height: 40px !important;
+  margin: 4px 0 !important;
+  padding-inline: 12px !important;
+  border-radius: 8px !important;
+  color: var(--c-text-secondary) !important;
+}
+.admin-sider .ant-menu-item::after {
+  display: none !important;
+}
+.admin-sider .ant-menu-item .anticon {
+  font-size: 16px;
+}
+.admin-sider .ant-menu-item:hover {
+  background: rgba(99, 102, 241, 0.08) !important;
+  color: var(--c-text) !important;
+}
+.admin-sider .ant-menu-item-selected {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.26), rgba(6, 182, 212, 0.12)) !important;
+  color: #fff !important;
+  box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.26);
+}
+.admin-sider.ant-layout-sider-collapsed .ant-layout-sider-children {
+  padding-inline: 8px;
+}
+.admin-sider.ant-layout-sider-collapsed .ant-menu-item {
+  padding-inline: 0 !important;
+}
+.admin-sider.ant-layout-sider-collapsed .admin-brand {
+  justify-content: center;
+  padding: 0;
+}
+.admin-sider.ant-layout-sider-collapsed .admin-brand-text {
+  display: none;
+}
+.admin-sider.ant-layout-sider-collapsed .admin-brand-mark {
+  display: none;
+}
+.admin-sider.ant-layout-sider-collapsed .admin-sider-toggle {
+  margin-left: 0;
+}
+.admin-main {
+  min-width: 0;
+  background: rgba(8, 9, 13, 0.44) !important;
+}
+.admin-topbar {
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--c-border);
+  background: rgba(14, 16, 24, 0.82);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+}
+.admin-page-title {
+  min-width: 0;
+}
+.admin-page-title h2 {
+  margin: 0;
+  color: var(--c-text);
+  font-size: 18px;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+.admin-page-title span {
+  display: block;
+  margin-top: 2px;
+  color: var(--c-text-muted);
+  font-size: 11px;
+}
+.admin-content {
+  min-width: 0;
+  padding: 16px 18px 18px;
+  overflow: auto;
+}
+.admin-page-tabs,
+.admin-page-tabs .ant-tabs-content-holder,
+.admin-page-tabs .ant-tabs-content,
+.admin-page-tabs .ant-tabs-tabpane {
   min-width: 0;
   max-width: 100%;
 }
-.admin-shell .ant-tabs-nav {
-  margin-bottom: 20px;
+.admin-page-tabs .ant-tabs-nav {
+  margin-bottom: 16px !important;
+}
+.admin-page-tabs .ant-tabs-nav::before {
+  border-bottom-color: var(--c-border) !important;
+}
+.admin-page-tabs .ant-tabs-tab {
+  border-color: var(--c-border) !important;
+  border-radius: 8px 8px 0 0 !important;
+  background: rgba(14, 16, 24, 0.72) !important;
+  transition: background 0.25s var(--ease-out), border-color 0.25s var(--ease-out), color 0.25s var(--ease-out) !important;
+}
+.admin-page-tabs .ant-tabs-tab:hover {
+  border-color: var(--c-border-active) !important;
+  color: var(--c-text) !important;
+}
+.admin-page-tabs .ant-tabs-tab-active {
+  border-color: var(--c-border-active) !important;
+  background: var(--c-bg-card-solid) !important;
+}
+.admin-page-tabs .ant-tabs-tab-remove {
+  color: var(--c-text-muted) !important;
+}
+.admin-page-tabs .ant-tabs-tab-remove:hover {
+  color: var(--c-text) !important;
+}
+.admin-page-tab-label {
+  display: inline-flex;
+  max-width: 160px;
+  align-items: center;
+  gap: 6px;
+  vertical-align: middle;
+}
+.admin-page-tab-label span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 768px) {
+  .admin-page-frame {
+    padding: 10px;
+  }
+  .admin-layout-shell {
+    min-height: calc(100vh - 20px);
+    border-radius: var(--radius-md);
+  }
+  .admin-topbar {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 12px;
+  }
+  .admin-content {
+    padding: 12px;
+  }
+}
+.notification-scope-tabs .ant-tabs-nav {
+  margin-bottom: 0 !important;
+}
+.notification-scope-tabs .ant-tabs-nav::before {
+  border-bottom: 0 !important;
+}
+.notification-scope-tabs .ant-tabs-tab {
+  padding-block: 6px !important;
+}
+.notification-scope-tab-label {
+  line-height: 1;
 }
 
 /* Tabs dark override */

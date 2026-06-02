@@ -12,6 +12,25 @@ export const api = axios.create({
   timeout: 120000,
 });
 
+const normalizeAdminBasePath = (value?: string): string => {
+  const raw = String(value || '').trim();
+  if (!raw || raw === '/' || raw === '.' || raw === './') {
+    return '';
+  }
+  return `/${raw.replace(/^\/+/, '').replace(/\/+$/, '')}`;
+};
+
+const adminBasePath = normalizeAdminBasePath(window.__NEOCOCKPIT_ADMIN_BASE_PATH__)
+  || normalizeAdminBasePath(import.meta.env.BASE_URL);
+const adminLoginPath = adminBasePath ? `${adminBasePath}/login` : '/login';
+
+const isInsideAdminApp = (pathname: string): boolean => {
+  if (!adminBasePath) {
+    return true;
+  }
+  return pathname === adminBasePath || pathname.startsWith(`${adminBasePath}/`);
+};
+
 // ── Token interceptor: attach admin token for all requests ────────────────
 api.interceptors.request.use((config) => {
   const adminToken = getAdminToken();
@@ -27,8 +46,8 @@ api.interceptors.response.use(
   (error) => {
     if (error?.response?.status === 401) {
       clearAdminToken();
-      if (window.location.pathname.startsWith('/admin')) {
-        window.location.href = '/admin/login';
+      if (isInsideAdminApp(window.location.pathname)) {
+        window.location.href = adminLoginPath;
       }
     }
     return Promise.reject(error);
@@ -89,4 +108,3 @@ export const taskApi = {
     return response.data;
   },
 };
-

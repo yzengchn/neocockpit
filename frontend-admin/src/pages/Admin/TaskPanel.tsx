@@ -2,12 +2,11 @@ import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Table, Button, message, Popconfirm,
-  Input, Select,
+  Input, Select, Switch, Tooltip,
 } from 'antd';
 import {
   DeleteOutlined, EyeOutlined, SearchOutlined,
 } from '@ant-design/icons';
-import { taskApi } from '@/services/api';
 import { adminTaskApi } from '@/services/admin';
 import { Task, TaskStatus } from '@/types/task';
 import { TASK_STATUS_FILTER_OPTIONS, TASK_TYPE_OPTIONS } from '@/constants/adminMeta';
@@ -28,7 +27,17 @@ export const TaskPanel: React.FC = () => {
 
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ADMIN_QUERY_KEYS.tasks,
-    queryFn: () => taskApi.listTasks(),
+    queryFn: () => adminTaskApi.listTasks(),
+  });
+
+  const visibilityMutation = useMutation({
+    mutationFn: ({ taskId, isVisible }: { taskId: string; isVisible: boolean }) =>
+      adminTaskApi.updateVisibility(taskId, isVisible),
+    onSuccess: () => {
+      message.success('展示状态已更新');
+      queryClient.invalidateQueries({ queryKey: ADMIN_QUERY_KEYS.tasks });
+    },
+    onError: () => message.error('展示状态更新失败'),
   });
 
   const deleteMutation = useMutation({
@@ -49,7 +58,9 @@ export const TaskPanel: React.FC = () => {
     if (searchText) {
       const search = searchText.toLowerCase();
       filtered = filtered.filter(t =>
-        t.id.toLowerCase().includes(search) ||
+        String(t.id).includes(search) ||
+        t.task_id.toLowerCase().includes(search) ||
+        (t.user_id && t.user_id.toLowerCase().includes(search)) ||
         t.user_input.toLowerCase().includes(search) ||
         (t.author && t.author.toLowerCase().includes(search))
       );
@@ -66,12 +77,16 @@ export const TaskPanel: React.FC = () => {
     return filtered;
   }, [tasks, searchText, statusFilter, typeFilter, authorFilter]);
 
-  const handleDelete = (id: string) => deleteMutation.mutate(id);
+  const handleDelete = (taskId: string) => deleteMutation.mutate(taskId);
 
   const columns: ColumnsType<Task> = [
     {
-      title: 'ID', dataIndex: 'id', key: 'id', width: 110,
-      render: (id: string) => <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--c-text-secondary)' }}>{id.slice(0, 8)}</span>,
+      title: 'ID', dataIndex: 'id', key: 'id', width: 64,
+      render: (id: number, record: Task) => (
+        <span title={record.task_id} style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--c-text-secondary)' }}>
+          {id}
+        </span>
+      ),
     },
     {
       title: '类型', dataIndex: 'task_type', key: 'task_type', width: 90,
@@ -96,6 +111,18 @@ export const TaskPanel: React.FC = () => {
       render: (status: TaskStatus) => <TaskStatusTag status={status} />,
     },
     {
+      title: '展示', dataIndex: 'is_visible', key: 'is_visible', width: 100, align: 'center',
+      render: (isVisible: boolean | undefined, record: Task) => (
+        <Switch
+          checked={isVisible !== false}
+          checkedChildren="展示"
+          unCheckedChildren="隐藏"
+          loading={visibilityMutation.isPending && visibilityMutation.variables?.taskId === record.task_id}
+          onChange={(checked) => visibilityMutation.mutate({ taskId: record.task_id, isVisible: checked })}
+        />
+      ),
+    },
+    {
       title: '浏览量', dataIndex: 'views', key: 'views', width: 90, align: 'right',
       sorter: (a, b) => (a.views ?? 0) - (b.views ?? 0),
       render: (views: number | undefined) => (
@@ -117,15 +144,17 @@ export const TaskPanel: React.FC = () => {
             type="link"
             size="small"
             icon={<EyeOutlined />}
-            href={getWebTaskDetailUrl(record.id)}
+            href={getWebTaskDetailUrl(record.task_id)}
             target="_blank"
             rel="noopener noreferrer"
             title="在新标签打开任务详情"
           >
             查看
           </Button>
-          <Popconfirm title="确认删除" description="确定要删除这个任务吗？" onConfirm={() => handleDelete(record.id)} okText="确认" cancelText="取消" okButtonProps={{ danger: true }}>
-            <Button type="link" size="small" danger icon={<DeleteOutlined />} loading={deleteMutation.isPending}>删除</Button>
+          <Popconfirm title="确认删除" description="确定要删除这个任务吗？" onConfirm={() => handleDelete(record.task_id)} okText="确认" cancelText="取消" okButtonProps={{ danger: true }}>
+            <Tooltip title="删除">
+              <Button type="text" size="small" danger icon={<DeleteOutlined />} loading={deleteMutation.isPending} aria-label="删除" />
+            </Tooltip>
           </Popconfirm>
         </div>
       ),
@@ -136,7 +165,7 @@ export const TaskPanel: React.FC = () => {
     <>
       <div style={{ marginBottom: 20, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
         <Search
-          placeholder="搜索任务ID/用户输入/作者"
+          placeholder="搜索主键ID/任务UUID/用户ID/用户输入/作者"
           allowClear
           style={{ width: 280, maxWidth: '100%' }}
           prefix={<SearchOutlined />}
@@ -176,7 +205,7 @@ export const TaskPanel: React.FC = () => {
         rowKey="id"
         loading={isLoading}
         pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
-        scroll={{ x: 1260 }}
+        scroll={{ x: 1314 }}
       />
     </>
   );

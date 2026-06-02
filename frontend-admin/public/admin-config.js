@@ -1,0 +1,1 @@
+window.__NEOCOCKPIT_ADMIN_BASE_PATH__ = "";

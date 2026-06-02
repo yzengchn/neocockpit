@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Table, InputNumber, Button, message, Tag, Modal, Input, Popconfirm } from 'antd';
+import { Table, InputNumber, Button, message, Tag, Modal, Input, Popconfirm, Tooltip } from 'antd';
 import { DollarOutlined, SaveOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { adminCreditPriceApi } from '@/services/admin';
 import { ADMIN_QUERY_KEYS } from '@/constants/queryKeys';
@@ -139,7 +139,9 @@ export const CreditPricePanel: React.FC = () => {
               编辑
             </Button>
             <Popconfirm title="确认删除" description="删除后该操作类型将免费，确定？" onConfirm={() => deleteMutation.mutate(record.id)} okText="确认" cancelText="取消" okButtonProps={{ danger: true }}>
-              <Button size="small" type="text" danger icon={<DeleteOutlined />} />
+              <Tooltip title="删除">
+                <Button size="small" type="text" danger icon={<DeleteOutlined />} aria-label="删除" />
+              </Tooltip>
             </Popconfirm>
           </div>
         );

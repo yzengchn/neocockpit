@@ -169,6 +169,18 @@ export const UserPanel: React.FC = () => {
       render: (v: number) => <Tag color={v > 0 ? 'gold' : 'red'} style={{ borderRadius: 'var(--radius-xs)', fontWeight: 600 }}>{v}</Tag>,
     },
     {
+      title: '最后登录', dataIndex: 'last_login_at', key: 'last_login_at', width: 170,
+      render: (date: string | null) => date
+        ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--c-text-secondary)' }}>{formatDateTime(date)}</span>
+        : '-',
+    },
+    {
+      title: '登录IP', dataIndex: 'last_login_ip', key: 'last_login_ip', width: 150,
+      render: (ip: string | null) => ip
+        ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{ip}</span>
+        : '-',
+    },
+    {
       title: '注册时间', dataIndex: 'created_at', key: 'created_at', width: 170,
       render: (date: string) => date
         ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--c-text-secondary)' }}>{formatDateTime(date)}</span>
@@ -204,8 +216,8 @@ export const UserPanel: React.FC = () => {
             />
           </Tooltip>
           <Popconfirm title="确认删除" description="删除后用户将无法登录，确定？" onConfirm={() => deleteMut.mutate(record.id)} okText="确认" cancelText="取消" okButtonProps={{ danger: true }}>
-            <Tooltip title="删除用户">
-              <Button type="text" size="small" danger icon={<DeleteOutlined />} loading={deleteMut.isPending} aria-label="删除用户" />
+            <Tooltip title="删除">
+              <Button type="text" size="small" danger icon={<DeleteOutlined />} loading={deleteMut.isPending} aria-label="删除" />
             </Tooltip>
           </Popconfirm>
         </div>
@@ -225,7 +237,7 @@ export const UserPanel: React.FC = () => {
         rowKey="id"
         loading={isLoading}
         pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
-        scroll={{ x: 980 }}
+        scroll={{ x: 1300 }}
       />
 
       {/* 编辑昵称弹窗 */}

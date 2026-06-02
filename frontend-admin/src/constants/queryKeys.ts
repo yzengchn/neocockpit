@@ -14,4 +14,11 @@ export const ADMIN_QUERY_KEYS = {
   ] as const,
   downloadStats: ['admin-download-stats'],
   notifications: ['admin-notifications'],
+  notificationAnnouncements: ['admin-notifications', 'announcement'],
+  notificationPage: (page: number, pageSize: number) => [
+    'admin-notifications',
+    'notification',
+    page,
+    pageSize,
+  ] as const,
 } as const;

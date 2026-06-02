@@ -28,6 +28,17 @@ const PageFallback: React.FC = () => (
   </div>
 );
 
+const normalizeAdminBasePath = (value?: string): string | undefined => {
+  const raw = String(value || '').trim();
+  if (!raw || raw === '/' || raw === '.' || raw === './') {
+    return undefined;
+  }
+  return `/${raw.replace(/^\/+/, '').replace(/\/+$/, '')}`;
+};
+
+const routerBaseName = normalizeAdminBasePath(window.__NEOCOCKPIT_ADMIN_BASE_PATH__)
+  || normalizeAdminBasePath(import.meta.env.BASE_URL);
+
 /** Route guard: only allow access when a valid admin token exists. */
 const AdminGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [checking, setChecking] = useState(true);
@@ -63,14 +74,14 @@ const AdminGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   if (!authorized) {
     clearAdminToken();
-    return <Navigate to="/admin/login" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return <>{children}</>;
 };
 
 const App: React.FC = () => {
-   return (
+  return (
     <ConfigProvider
       locale={zhCN}
       theme={{
@@ -96,7 +107,7 @@ const App: React.FC = () => {
       }}
     >
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
+        <BrowserRouter basename={routerBaseName}>
           <div className="app-shell">
             {/* grid background */}
             <div style={{
@@ -138,17 +149,16 @@ const App: React.FC = () => {
             <div style={{ position: 'relative', zIndex: 1 }}>
               <Suspense fallback={<PageFallback />}>
                 <Routes>
-                  <Route path="/admin/login" element={<LoginPage />} />
+                  <Route path="/login" element={<LoginPage />} />
                   <Route
-                    path="/admin"
+                    path="/"
                     element={
                       <AdminGuard>
                         <AdminPage />
                       </AdminGuard>
                     }
                   />
-                  {/* Redirect root to admin */}
-                  <Route path="*" element={<Navigate to="/admin" replace />} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </Suspense>
             </div>

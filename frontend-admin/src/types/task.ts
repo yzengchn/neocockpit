@@ -56,7 +56,8 @@ export interface BuildTree {
 }
 
 export interface Task {
-  id: string;
+  id: number;
+  task_id: string;
   user_input: string;
   task_type: TaskType;
   background_image_url?: string;
@@ -83,6 +84,7 @@ export interface Task {
   texture_albedo_url?: string;
   texture_normal_url?: string;
   ai_provider?: string;
+  user_id?: string | null;
   author?: string;
   icon_descriptions?: string[];
   status: TaskStatus;
@@ -90,6 +92,7 @@ export interface Task {
   output_path?: string;
   likes: number;
   views: number;
+  is_visible: boolean;
   created_at: string;
   updated_at?: string;
 }
@@ -211,9 +214,12 @@ export interface UserInfo {
 }
 
 export type NotificationLevel = 'info' | 'warning' | 'error';
+export type NotificationMessageType = 'announcement' | 'notification';
 
 export interface NotificationItem {
   id: string;
+  event_id: string | null;
+  message_type: NotificationMessageType;
   user_id: string | null;
   user_name: string | null;
   title: string;
@@ -221,22 +227,42 @@ export interface NotificationItem {
   link_url?: string | null;
   level: NotificationLevel;
   enabled: boolean;
+  target_count: number;
+  read_count: number;
+  is_read: boolean;
+  publish_at: string | null;
+  expire_at: string | null;
   created_at: string | null;
   updated_at: string | null;
 }
 
+export interface NotificationPageResponse {
+  items: NotificationItem[];
+  total: number;
+  skip: number;
+  limit: number;
+}
+
 export interface NotificationCreate {
+  message_type?: NotificationMessageType;
   title: string;
   content: string;
+  link_url?: string | null;
   level?: NotificationLevel;
   enabled?: boolean;
+  user_ids?: string[];
+  publish_at?: string | null;
+  expire_at?: string | null;
 }
 
 export interface NotificationUpdate {
   title?: string;
   content?: string;
+  link_url?: string | null;
   level?: NotificationLevel;
   enabled?: boolean;
+  publish_at?: string | null;
+  expire_at?: string | null;
 }
 
 export interface UserAdmin {
@@ -248,6 +274,8 @@ export interface UserAdmin {
   task_count: number;
   likes_received: number;
   credits: number;
+  last_login_at: string | null;
+  last_login_ip: string | null;
   created_at: string | null;
   updated_at: string | null;
 }

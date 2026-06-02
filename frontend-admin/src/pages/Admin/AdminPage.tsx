@@ -1,7 +1,7 @@
 import React, { Suspense, lazy, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient, type QueryKey } from '@tanstack/react-query';
-import { Card, Button, Space, Spin, Tabs } from 'antd';
+import { Button, Layout, Menu, Space, Spin, Tabs } from 'antd';
 import {
   ReloadOutlined, HomeOutlined,
   AppstoreOutlined, LogoutOutlined, CloudServerOutlined,
@@ -10,11 +10,13 @@ import {
   DollarOutlined,
   ApiOutlined,
   BellOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
 } from '@ant-design/icons';
 import { clearAdminToken } from '@/services/adminToken';
-import { glassCard, gradientHeading } from '@/constants/styles';
 import { ADMIN_QUERY_KEYS } from '@/constants/queryKeys';
 import { getWebHomeUrl } from '@/utils/webUrl';
+import type { MenuProps, TabsProps } from 'antd';
 
 const TaskPanel = lazy(() => import('@/pages/Admin/TaskPanel').then(({ TaskPanel }) => ({ default: TaskPanel })));
 const IconPanel = lazy(() => import('@/pages/Admin/IconPanel').then(({ IconPanel }) => ({ default: IconPanel })));
@@ -37,19 +39,26 @@ type AdminTabKey =
 
 const ADMIN_TABS: Array<{
   key: AdminTabKey;
-  label: React.ReactNode;
+  title: string;
+  icon: React.ReactNode;
   Component: React.LazyExoticComponent<React.ComponentType>;
   queryKeys: QueryKey[];
 }> = [
-  { key: 'tasks', label: '任务管理', Component: TaskPanel, queryKeys: [ADMIN_QUERY_KEYS.tasks] },
-  { key: 'icon-descriptions', label: <span><AppstoreOutlined /> 图标描述</span>, Component: IconPanel, queryKeys: [ADMIN_QUERY_KEYS.iconDescriptions] },
-  { key: 'ai-providers', label: <span><CloudServerOutlined /> AI 提供商</span>, Component: ProviderPanel, queryKeys: [ADMIN_QUERY_KEYS.aiProviders] },
-  { key: 'image-channels', label: <span><ApiOutlined /> 图片渠道</span>, Component: ChannelPanel, queryKeys: [ADMIN_QUERY_KEYS.imageChannels] },
-  { key: 'users', label: <span><UserOutlined /> 用户管理</span>, Component: UserPanel, queryKeys: [ADMIN_QUERY_KEYS.users] },
-  { key: 'credit-prices', label: <span><DollarOutlined /> 积分单价</span>, Component: CreditPricePanel, queryKeys: [ADMIN_QUERY_KEYS.creditPrices] },
-  { key: 'downloads', label: <span><DownloadOutlined /> 积分记录</span>, Component: DownloadPanel, queryKeys: [ADMIN_QUERY_KEYS.downloadList, ADMIN_QUERY_KEYS.downloadStats] },
-  { key: 'notifications', label: <span><BellOutlined /> 公告通知</span>, Component: NotificationPanel, queryKeys: [ADMIN_QUERY_KEYS.notifications] },
+  { key: 'tasks', title: '任务管理', icon: <AppstoreOutlined />, Component: TaskPanel, queryKeys: [ADMIN_QUERY_KEYS.tasks] },
+  { key: 'icon-descriptions', title: '图标描述', icon: <AppstoreOutlined />, Component: IconPanel, queryKeys: [ADMIN_QUERY_KEYS.iconDescriptions] },
+  { key: 'ai-providers', title: 'AI 提供商', icon: <CloudServerOutlined />, Component: ProviderPanel, queryKeys: [ADMIN_QUERY_KEYS.aiProviders] },
+  { key: 'image-channels', title: '图片渠道', icon: <ApiOutlined />, Component: ChannelPanel, queryKeys: [ADMIN_QUERY_KEYS.imageChannels] },
+  { key: 'users', title: '用户管理', icon: <UserOutlined />, Component: UserPanel, queryKeys: [ADMIN_QUERY_KEYS.users] },
+  { key: 'credit-prices', title: '积分单价', icon: <DollarOutlined />, Component: CreditPricePanel, queryKeys: [ADMIN_QUERY_KEYS.creditPrices] },
+  { key: 'downloads', title: '积分记录', icon: <DownloadOutlined />, Component: DownloadPanel, queryKeys: [ADMIN_QUERY_KEYS.downloadList, ADMIN_QUERY_KEYS.downloadStats] },
+  { key: 'notifications', title: '公告通知', icon: <BellOutlined />, Component: NotificationPanel, queryKeys: [ADMIN_QUERY_KEYS.notifications] },
 ];
+
+const { Sider, Content } = Layout;
+const DEFAULT_ADMIN_TAB: AdminTabKey = 'tasks';
+const FIXED_ADMIN_TABS = new Set<AdminTabKey>([DEFAULT_ADMIN_TAB]);
+const ADMIN_SIDER_WIDTH = 176;
+const ADMIN_SIDER_COLLAPSED_WIDTH = 56;
 
 const PanelFallback: React.FC = () => (
   <div style={{ minHeight: 280, display: 'grid', placeItems: 'center' }}>
@@ -60,25 +69,68 @@ const PanelFallback: React.FC = () => (
 export const AdminPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [activeKey, setActiveKey] = useState<AdminTabKey>('tasks');
+  const [activeKey, setActiveKey] = useState<AdminTabKey>(DEFAULT_ADMIN_TAB);
+  const [openKeys, setOpenKeys] = useState<AdminTabKey[]>([DEFAULT_ADMIN_TAB]);
+  const [collapsed, setCollapsed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const activeTab = ADMIN_TABS.find((tab) => tab.key === activeKey) ?? ADMIN_TABS[0];
 
-  const tabItems = useMemo(
-    () => ADMIN_TABS.map(({ key, label, Component }) => ({
-      key,
-      label,
-      children: activeKey === key
-        ? (
-          <Suspense fallback={<PanelFallback />}>
-            <Component />
-          </Suspense>
-        )
-        : null,
-    })),
-    [activeKey],
+  const menuItems = useMemo<MenuProps['items']>(
+    () => ADMIN_TABS.map(({ key, title, icon }) => ({ key, icon, label: title })),
+    [],
   );
+
+  const openTabConfigs = useMemo(
+    () => openKeys
+      .map((key) => ADMIN_TABS.find((tab) => tab.key === key))
+      .filter((tab): tab is (typeof ADMIN_TABS)[number] => Boolean(tab)),
+    [openKeys],
+  );
+
+  const tabItems = useMemo(
+    () => openTabConfigs.map(({ key, title, icon, Component }) => ({
+      key,
+      label: (
+        <span className="admin-page-tab-label">
+          {icon}
+          <span>{title}</span>
+        </span>
+      ),
+      closable: !FIXED_ADMIN_TABS.has(key),
+      children: (
+        <Suspense fallback={<PanelFallback />}>
+          <Component />
+        </Suspense>
+      ),
+    })),
+    [openTabConfigs],
+  );
+
+  const openAdminPage = (key: AdminTabKey) => {
+    setOpenKeys((prev) => (prev.includes(key) ? prev : [...prev, key]));
+    setActiveKey(key);
+  };
+
+  const closeAdminPage = (key: AdminTabKey) => {
+    if (FIXED_ADMIN_TABS.has(key)) {
+      return;
+    }
+    setOpenKeys((prev) => {
+      const targetIndex = prev.indexOf(key);
+      const nextKeys = prev.filter((item) => item !== key);
+      if (activeKey === key) {
+        setActiveKey(nextKeys[targetIndex - 1] ?? nextKeys[targetIndex] ?? DEFAULT_ADMIN_TAB);
+      }
+      return nextKeys.length ? nextKeys : [DEFAULT_ADMIN_TAB];
+    });
+  };
+
+  const handleTabEdit: TabsProps['onEdit'] = (targetKey, action) => {
+    if (action === 'remove' && typeof targetKey === 'string') {
+      closeAdminPage(targetKey as AdminTabKey);
+    }
+  };
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -92,47 +144,68 @@ export const AdminPage: React.FC = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', padding: 'clamp(16px, 4vw, 40px) clamp(12px, 3vw, 24px)' }}>
-      <Card
-        className="admin-shell"
-        bordered={false}
-        style={{
-          width: '100%',
-          maxWidth: 1440,
-          margin: '0 auto',
-          ...glassCard,
-        }}
-        styles={{ body: { padding: 'clamp(16px, 3vw, 32px)', minWidth: 0 } }}
-      >
-        {/* Header */}
-        <div style={{
-          marginBottom: 28,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 16,
-        }}>
-          <h2 style={{
-            ...gradientHeading,
-            fontSize: 22,
-            letterSpacing: '-0.3px',
-          }}>
-            管理后台
-          </h2>
-          <Space wrap>
-            <Button icon={<ReloadOutlined />} onClick={handleRefresh} loading={refreshing}>刷新</Button>
-            <Button type="primary" icon={<HomeOutlined />} href={getWebHomeUrl()} className="neon-btn">返回首页</Button>
-            <Button danger icon={<LogoutOutlined />} onClick={() => { clearAdminToken(); navigate('/admin/login'); }}>退出登录</Button>
-          </Space>
-        </div>
+    <div className="admin-page-frame">
+      <Layout className="admin-layout-shell">
+        <Sider
+          className="admin-sider"
+          width={ADMIN_SIDER_WIDTH}
+          collapsedWidth={ADMIN_SIDER_COLLAPSED_WIDTH}
+          breakpoint="lg"
+          collapsible
+          collapsed={collapsed}
+          trigger={null}
+          onCollapse={setCollapsed}
+        >
+          <div className="admin-brand">
+            <div className="admin-brand-mark">N</div>
+            <div className="admin-brand-text">
+              <span>NeoCockpit</span>
+              <small>管理后台</small>
+            </div>
+            <Button
+              className="admin-sider-toggle"
+              type="text"
+              size="small"
+              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+              aria-label={collapsed ? '展开侧边栏' : '折叠侧边栏'}
+              onClick={() => setCollapsed((prev) => !prev)}
+            />
+          </div>
+          <Menu
+            mode="inline"
+            items={menuItems}
+            selectedKeys={[activeKey]}
+            inlineCollapsed={collapsed}
+            onClick={({ key }) => openAdminPage(key as AdminTabKey)}
+          />
+        </Sider>
 
-        <Tabs
-          activeKey={activeKey}
-          onChange={(key) => setActiveKey(key as AdminTabKey)}
-          items={tabItems}
-        />
-      </Card>
+        <Layout className="admin-main">
+          <header className="admin-topbar">
+            <div className="admin-page-title">
+              <h2>{activeTab.title}</h2>
+              <span>管理后台</span>
+            </div>
+            <Space wrap>
+              <Button icon={<ReloadOutlined />} onClick={handleRefresh} loading={refreshing}>刷新</Button>
+              <Button type="primary" icon={<HomeOutlined />} href={getWebHomeUrl()} className="neon-btn">返回首页</Button>
+              <Button danger icon={<LogoutOutlined />} onClick={() => { clearAdminToken(); navigate('/login'); }}>退出登录</Button>
+            </Space>
+          </header>
+
+          <Content className="admin-content">
+            <Tabs
+              className="admin-page-tabs"
+              type="editable-card"
+              hideAdd
+              activeKey={activeKey}
+              onChange={(key) => setActiveKey(key as AdminTabKey)}
+              onEdit={handleTabEdit}
+              items={tabItems}
+            />
+          </Content>
+        </Layout>
+      </Layout>
     </div>
   );
 };

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Table, Button, Space, Tag, message, Popconfirm,
-  Input, Form, Modal, Switch, InputNumber, Select, Typography,
+  Input, Form, Modal, Switch, InputNumber, Select, Typography, Tooltip,
 } from 'antd';
 import {
   DeleteOutlined, PlusOutlined, EditOutlined,
@@ -248,7 +248,9 @@ export const ChannelPanel: React.FC = () => {
             onConfirm={() => deleteMut.mutate(record.id)}
             okText="确认" cancelText="取消" okButtonProps={{ danger: true }}
           >
-            <Button type="link" size="small" danger icon={<DeleteOutlined />} loading={deleteMut.isPending}>删除</Button>
+            <Tooltip title="删除">
+              <Button type="text" size="small" danger icon={<DeleteOutlined />} loading={deleteMut.isPending} aria-label="删除" />
+            </Tooltip>
           </Popconfirm>
         </div>
       ),

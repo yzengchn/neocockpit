@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Table, Button, message, Popconfirm,
-  Input, Form, Modal, Switch, InputNumber,
+  Input, Form, Modal, Switch, InputNumber, Tooltip,
 } from 'antd';
 import {
   DeleteOutlined, PlusOutlined, EditOutlined,
@@ -131,7 +131,9 @@ export const IconPanel: React.FC = () => {
         <div className="admin-table-actions">
           <Button type="link" size="small" icon={<EditOutlined />} onClick={() => { setEditing(record); setModalOpen(true); }}>编辑</Button>
           <Popconfirm title="确认删除" description="确定要删除吗？" onConfirm={() => deleteMut.mutate(record.id)} okText="确认" cancelText="取消" okButtonProps={{ danger: true }}>
-            <Button type="link" size="small" danger icon={<DeleteOutlined />} loading={deleteMut.isPending}>删除</Button>
+            <Tooltip title="删除">
+              <Button type="text" size="small" danger icon={<DeleteOutlined />} loading={deleteMut.isPending} aria-label="删除" />
+            </Tooltip>
           </Popconfirm>
         </div>
       ),

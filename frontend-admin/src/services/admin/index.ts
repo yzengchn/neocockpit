@@ -32,13 +32,25 @@ import type {
   ImageChannelCreate,
   ImageChannelUpdate,
   NotificationItem,
+  NotificationPageResponse,
   NotificationCreate,
   NotificationUpdate,
+  Task,
 } from '@/types/task';
 
 // ── 任务管理 ──────────────────────────────────────────────────────────────
 
 export const adminTaskApi = {
+  listTasks: async (skip = 0, limit = 200): Promise<Task[]> => {
+    const res = await api.get<Task[]>('/admin/tasks/', { params: { skip, limit } });
+    return res.data;
+  },
+
+  updateVisibility: async (taskId: string, isVisible: boolean): Promise<Task> => {
+    const res = await api.patch<Task>(`/admin/tasks/${taskId}/visibility`, { is_visible: isVisible });
+    return res.data;
+  },
+
   deleteTask: async (taskId: string): Promise<void> => {
     await api.delete(`/admin/tasks/${taskId}`);
   },
@@ -191,6 +203,20 @@ export const adminChannelApi = {
 export const adminNotificationApi = {
   listAll: async (): Promise<NotificationItem[]> => {
     const res = await api.get<NotificationItem[]>('/admin/notifications/');
+    return res.data;
+  },
+
+  listAnnouncements: async (): Promise<NotificationItem[]> => {
+    const res = await api.get<NotificationItem[]>('/admin/notifications/', {
+      params: { message_type: 'announcement' },
+    });
+    return res.data;
+  },
+
+  listNotifications: async (skip = 0, limit = 10): Promise<NotificationPageResponse> => {
+    const res = await api.get<NotificationPageResponse>('/admin/notifications/page', {
+      params: { message_type: 'notification', skip, limit },
+    });
     return res.data;
   },
 
