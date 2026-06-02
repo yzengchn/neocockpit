@@ -56,10 +56,12 @@ export interface BuildTree {
 }
 
 export interface TaskListItem {
-  id: string;
+  id: number;
+  task_id: string;
   user_input: string;
   task_type: TaskType;
   ai_provider?: string;
+  user_id?: string | null;
   author?: string;
   icon_descriptions?: string[];
   status: TaskStatus;
@@ -73,7 +75,8 @@ export interface TaskListItem {
 }
 
 export interface TaskActionResult {
-  id: string;
+  id: number;
+  task_id: string;
   task_type: TaskType;
   status: TaskStatus;
 }
@@ -264,13 +267,17 @@ export interface UserInfo {
   id: string;
   nick_name: string;
   credits: number;
+  last_login_at?: string | null;
+  last_login_ip?: string | null;
   created_at: string;
 }
 
 export type NotificationLevel = 'info' | 'warning' | 'error';
+export type NotificationMessageType = 'announcement' | 'notification';
 
 export interface UserNotification {
   id: string;
+  message_type: NotificationMessageType;
   title: string;
   content: string;
   link_url?: string | null;
@@ -293,6 +300,8 @@ export interface UserAdmin {
   task_count: number;
   likes_received: number;
   credits: number;
+  last_login_at: string | null;
+  last_login_ip: string | null;
   created_at: string | null;
   updated_at: string | null;
 }

@@ -516,7 +516,7 @@ const ProfilePage: React.FC = () => {
                     render: (_: unknown, record: TaskListItem) => (
                       <Button type="link" size="small"
                         style={{ color: 'var(--c-accent)', padding: 0, fontSize: 12 }}
-                        onClick={() => navigate(`/tasks/${record.id}`)}
+                        onClick={() => navigate(`/tasks/${record.task_id}`)}
                       >
                         查看
                       </Button>

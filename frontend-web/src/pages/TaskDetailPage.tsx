@@ -12,7 +12,7 @@ import { ImagePreview } from '@/components/ImagePreview';
 import { Portrait3DViewer } from '@/components/Portrait3DViewer';
 import { taskApi, userApi } from '@/services/api';
 import { useIdleDetector } from '@/hooks/useIdleDetector';
-import { isUserLoggedIn } from '@/services/api';
+import { getUserInfo, isUserLoggedIn } from '@/services/api';
 import { TaskStatus, TaskType, isActiveTaskStatus } from '@/types/task';
 import type { BuildTree, BuildTreeNode, Task } from '@/types/task';
 import { statusConfig } from '@/constants/status';
@@ -94,7 +94,7 @@ export const TaskDetailPage: React.FC = () => {
   const recordViewMutation = useMutation({
     mutationFn: (id: string) => taskApi.recordTaskView(id),
     onSuccess: (data) => {
-      queryClient.setQueryData<Task>(['task', data.id], (current) =>
+      queryClient.setQueryData<Task>(['task', data.task_id], (current) =>
         current ? { ...current, views: data.views } : current,
       );
     },
@@ -128,6 +128,8 @@ export const TaskDetailPage: React.FC = () => {
     refetchInterval: isIdle ? false : (query) =>
       isActiveTaskStatus(query.state.data?.status) ? 2000 : false,
   });
+  const currentUser = getUserInfo();
+  const isOwnTask = Boolean(task?.user_id && currentUser?.id === task.user_id);
 
   // Fetch file tree by scanning the output directory directly
   const { data: fileTree } = useQuery<BuildTree>({
@@ -157,13 +159,13 @@ export const TaskDetailPage: React.FC = () => {
   }, [taskId]);
 
   React.useEffect(() => {
-    if (!task?.id) return;
-    const viewKey = `aigc_task_viewed_${task.id}`;
+    if (!task?.task_id) return;
+    const viewKey = `aigc_task_viewed_${task.task_id}`;
     if (sessionStorage.getItem(viewKey)) return;
 
     sessionStorage.setItem(viewKey, '1');
-    recordViewMutation.mutate(task.id);
-  }, [task?.id]);
+    recordViewMutation.mutate(task.task_id);
+  }, [task?.task_id]);
 
   const defaultPreviewImagePath = useMemo(() => {
     return getDefaultPreviewImagePath(task, fileTree);
@@ -198,7 +200,7 @@ export const TaskDetailPage: React.FC = () => {
   const cfg = statusConfig[task.status] || statusConfig[TaskStatus.QUEUED];
   const isTaskActive = isActiveTaskStatus(task.status);
   const portraitMeshUrl = dh && task.status === TaskStatus.COMPLETED
-    ? `/api/resource/${task.id}/product/mesh/portrait_3d_mesh.json`
+    ? `/api/resource/${task.task_id}/product/mesh/portrait_3d_mesh.json`
     : undefined;
 
   const renderPromptBlock = (
@@ -260,8 +262,8 @@ export const TaskDetailPage: React.FC = () => {
           {/* Status card */}
           <Card style={{ ...glassCardOverflow, marginBottom: 24 }} styles={{ body: { padding: 24 } }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-              <Text style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--c-text-muted)' }}>
-                {task.id}
+              <Text title={task.task_id} style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--c-text-muted)', wordBreak: 'break-all' }}>
+                {task.task_id}
               </Text>
               <Tag color={cfg.color} className="neon-tag">{cfg.text}</Tag>
             </div>
@@ -554,7 +556,7 @@ export const TaskDetailPage: React.FC = () => {
           )}
 
           {/* ── Generated images ── */}
-          {(task.background_image_url || task.icon_image_url || task.avatar_image_url || task.texture_albedo_url || task.texture_normal_url || task.view_image_urls) && (
+          {!diy && (task.background_image_url || task.icon_image_url || task.avatar_image_url || task.texture_albedo_url || task.texture_normal_url || task.view_image_urls) && (
             <Card
               style={{
                 ...glassCardOverflow,
@@ -588,7 +590,6 @@ export const TaskDetailPage: React.FC = () => {
                 {dh && <Col xs={24} md={12}><ImageBlock label="法线贴图" src={task.texture_normal_url} alt="Normal" /></Col>}
                 {!dh && !diy && !wallpaper && <Col xs={24} md={12}><ImageBlock label="背景图" src={task.background_image_url} alt="Background" /></Col>}
                 {!dh && !diy && !wallpaper && <Col xs={24} md={12}><ImageBlock label="图标" src={task.icon_image_url} alt="Icon" /></Col>}
-                {diy && <Col xs={24} md={12}><ImageBlock label="生成图片" src={task.background_image_url} alt="Generated" /></Col>}
                 {wallpaper && <Col xs={24} md={12}><ImageBlock label="壁纸" src={task.background_image_url} alt="Wallpaper" /></Col>}
               </Row>
             </Card>
@@ -616,15 +617,15 @@ export const TaskDetailPage: React.FC = () => {
                 if (downloading) return;
                 setDownloading(true);
                 try {
-                  await taskApi.downloadZip(task.id);
-                  const dp = creditPrices?.find(c => c.action === 'download');
-                  if (dp && dp.price > 0) message.success('打包下载完成（消耗' + dp.price + '积分）');
-                  else message.success('打包下载完成');
-                  queryClient.invalidateQueries({ queryKey: ['my-credits'] });
+                  const ticket = await taskApi.downloadZip(task.task_id);
+                  if (ticket.charged && ticket.credits_cost > 0) message.success('下载已开始（消耗' + ticket.credits_cost + '积分）');
+                  else message.success('下载已开始');
+                  if (ticket.charged) queryClient.invalidateQueries({ queryKey: ['my-credits'] });
                 } finally { setDownloading(false); }
               }}
             >
               打包下载{(() => {
+                if (isOwnTask) return '';
                 const p = creditPrices?.find(c => c.action === 'download');
                 if (p && p.price > 0) return ` (${p.price}积分)`;
                 return '';

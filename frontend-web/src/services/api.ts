@@ -25,6 +25,14 @@ const USER_INFO_KEY = 'aigc_user_info';
 const USER_SIGNATURE_KEY = 'aigc_user_signature';
 const LAST_NICKNAME_KEY = 'aigc_last_nickname';
 
+interface DownloadTicketResponse {
+  url: string;
+  expires_at: string;
+  ttl_seconds: number;
+  credits_cost: number;
+  charged: boolean;
+}
+
 export const api = axios.create({
   baseURL: '/api',
   timeout: 120000,
@@ -79,8 +87,8 @@ export const taskApi = {
     return response.data;
   },
 
-  recordTaskView: async (taskId: string): Promise<{ id: string; views: number }> => {
-    const response = await api.post<{ id: string; views: number }>(`/tasks/${taskId}/view`);
+  recordTaskView: async (taskId: string): Promise<{ id: number; task_id: string; views: number }> => {
+    const response = await api.post<{ id: number; task_id: string; views: number }>(`/tasks/${taskId}/view`);
     return response.data;
   },
 
@@ -119,11 +127,15 @@ export const taskApi = {
     return response.data;
   },
 
-  downloadZip: async (taskId: string): Promise<void> => {
-    const response = await api.post<{ url: string }>(`/tasks/${taskId}/download`);
-    if (response.data.url) {
-      window.open(response.data.url, '_blank');
-    }
+  downloadZip: async (taskId: string): Promise<DownloadTicketResponse> => {
+    const response = await api.post<DownloadTicketResponse>(`/resource/${taskId}/download`);
+    const link = document.createElement('a');
+    link.href = response.data.url;
+    link.rel = 'noopener';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    return response.data;
   },
 
   getFileTree: async (taskId: string): Promise<BuildTree> => {
@@ -132,7 +144,7 @@ export const taskApi = {
   },
 
   downloadPackage: async (taskId: string): Promise<string> => {
-    const response = await api.post<{ url: string }>(`/tasks/${taskId}/download`);
+    const response = await api.post<DownloadTicketResponse>(`/resource/${taskId}/download`);
     return response.data.url;
   },
 

@@ -19,7 +19,7 @@ import { taskApi, userApi, presenceApi, iconDescriptionApi, aiProviderApi, notif
 import AuthModal from '@/components/AuthModal';
 import { usePresence } from '@/hooks/usePresence';
 import { useIdleDetector } from '@/hooks/useIdleDetector';
-import type { UserInfo, InkSignature, UserNotification, TaskCreate, TaskListItem } from '@/types/task';
+import type { UserInfo, InkSignature, UserNotification, NotificationListResponse, TaskCreate, TaskListItem } from '@/types/task';
 import {
   TaskType, isActiveTaskStatus,
 } from '@/types/task';
@@ -61,6 +61,54 @@ const formatNotificationTime = (value?: string | null) => {
     hour: '2-digit',
     minute: '2-digit',
   });
+};
+
+const getNotificationTimestamp = (item: UserNotification) => {
+  const timestamp = item.created_at ? new Date(item.created_at).getTime() : 0;
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+};
+
+const mergeNotificationsWithLocalRead = (
+  items: UserNotification[],
+  locallyReadItems: UserNotification[],
+) => {
+  const byId = new Map<string, UserNotification>();
+  for (const item of items) {
+    byId.set(item.id, item);
+  }
+  for (const item of locallyReadItems) {
+    const current = byId.get(item.id);
+    byId.set(item.id, {
+      ...(current ?? item),
+      is_read: true,
+    });
+  }
+  return Array.from(byId.values()).sort(
+    (a, b) => getNotificationTimestamp(b) - getNotificationTimestamp(a),
+  );
+};
+
+const upsertReadNotifications = (
+  current: UserNotification[],
+  nextItems: UserNotification[],
+) => mergeNotificationsWithLocalRead(current, nextItems.map(item => ({ ...item, is_read: true })));
+
+const markNotificationsReadInCache = (
+  data: NotificationListResponse | undefined,
+  ids: Set<string>,
+): NotificationListResponse | undefined => {
+  if (!data) return data;
+  let newlyReadCount = 0;
+  const items = data.items.map((item) => {
+    if (!ids.has(item.id)) return item;
+    if (!item.is_read) newlyReadCount += 1;
+    return { ...item, is_read: true };
+  });
+  return {
+    ...data,
+    items,
+    unread_count: Math.max(0, data.unread_count - newlyReadCount),
+  };
 };
 
 type ApiError = {
@@ -108,8 +156,8 @@ const getTaskCreatedAtTime = (task: TaskListItem) => {
 const uniqueTasksByFirstOccurrence = (items: TaskListItem[]) => {
   const byId = new Map<string, TaskListItem>();
   for (const item of items) {
-    if (!byId.has(item.id)) {
-      byId.set(item.id, item);
+    if (!byId.has(item.task_id)) {
+      byId.set(item.task_id, item);
     }
   }
   return Array.from(byId.values());
@@ -119,11 +167,11 @@ const NotificationPanel: React.FC<{
   items: UserNotification[];
   unreadCount: number;
   loading: boolean;
-  onMarkRead: (id: string) => void;
+  onMarkRead: (item: UserNotification) => void;
   onMarkAllRead: () => void;
   onOpenLink: (item: UserNotification) => void;
 }> = ({ items, unreadCount, loading, onMarkRead, onMarkAllRead, onOpenLink }) => (
-  <div style={{ width: 320, maxWidth: 'calc(100vw - 48px)' }}>
+  <div style={{ width: 420, maxWidth: 'calc(100vw - 32px)' }}>
     <div style={{
       display: 'flex',
       alignItems: 'center',
@@ -159,12 +207,12 @@ const NotificationPanel: React.FC<{
           return (
             <div
               key={item.id}
-              onClick={() => { if (!item.is_read) onMarkRead(item.id); }}
+              onClick={() => { if (!item.is_read) onMarkRead(item); }}
               onKeyDown={(event) => {
                 if (item.is_read) return;
                 if (event.key === 'Enter' || event.key === ' ') {
                   event.preventDefault();
-                  onMarkRead(item.id);
+                  onMarkRead(item);
                 }
               }}
               role="button"
@@ -201,9 +249,22 @@ const NotificationPanel: React.FC<{
                 color: item.is_read ? 'var(--c-text-muted)' : 'var(--c-text-secondary)',
                 fontSize: 12,
                 lineHeight: 1.6,
-                whiteSpace: 'pre-wrap',
+                display: 'flex',
+                alignItems: 'flex-end',
+                gap: 6,
               }}>
-                <span>{item.content}</span>
+                <span style={{
+                  flex: 1,
+                  minWidth: 0,
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  whiteSpace: 'normal',
+                  wordBreak: 'break-word',
+                }}>
+                  {item.content}
+                </span>
                 {item.link_url && (
                   <button
                     type="button"
@@ -215,8 +276,8 @@ const NotificationPanel: React.FC<{
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
+                      flex: '0 0 auto',
                       gap: 3,
-                      marginLeft: 6,
                       padding: '1px 6px',
                       minHeight: 22,
                       borderRadius: 6,
@@ -227,10 +288,9 @@ const NotificationPanel: React.FC<{
                       fontSize: 12,
                       fontWeight: 800,
                       lineHeight: 1,
-                      verticalAlign: 'baseline',
                     }}
                   >
-                    直达
+                    To
                     <ArrowRightOutlined style={{ fontSize: 10 }} />
                   </button>
                 )}
@@ -277,6 +337,12 @@ export const HomePage: React.FC = () => {
   usePresence('/');
   const { isIdle } = useIdleDetector();
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(readStoredUser);
+  const [locallyReadNotifications, setLocallyReadNotifications] = useState<UserNotification[]>([]);
+  const notificationQueryKey = useMemo(() => ['notifications', currentUser?.id] as const, [currentUser?.id]);
+
+  useEffect(() => {
+    setLocallyReadNotifications([]);
+  }, [currentUser?.id]);
 
   /* ── Verify user token on mount ── */
   useEffect(() => {
@@ -408,41 +474,63 @@ export const HomePage: React.FC = () => {
     data: notificationData,
     isFetching: notificationLoading,
   } = useQuery({
-    queryKey: ['notifications', currentUser?.id],
+    queryKey: notificationQueryKey,
     queryFn: () => notificationApi.list(20),
     enabled: Boolean(currentUser),
     refetchInterval: isIdle ? POLL.DEEP_IDLE : POLL.ONLINE,
     refetchIntervalInBackground: false,
   });
 
-  const notifications = notificationData?.items ?? [];
+  const serverNotifications = notificationData?.items ?? [];
+  const notifications = useMemo(
+    () => mergeNotificationsWithLocalRead(serverNotifications, locallyReadNotifications),
+    [serverNotifications, locallyReadNotifications],
+  );
   const unreadNotificationCount = notificationData?.unread_count ?? 0;
 
-  const handleMarkNotificationRead = useCallback(async (notificationId: string) => {
+  const handleMarkMessageRead = useCallback(async (item: UserNotification) => {
+    if (item.is_read) return;
     try {
-      await notificationApi.markRead(notificationId);
-      queryClient.invalidateQueries({ queryKey: ['notifications', currentUser?.id] });
+      await notificationApi.markRead(item.id);
+      const ids = new Set([item.id]);
+      setLocallyReadNotifications(prev => upsertReadNotifications(prev, [item]));
+      queryClient.setQueryData<NotificationListResponse>(
+        notificationQueryKey,
+        data => markNotificationsReadInCache(data, ids),
+      );
     } catch {
       message.error('通知状态更新失败');
     }
-  }, [currentUser?.id, queryClient]);
+  }, [notificationQueryKey, queryClient]);
 
   const handleMarkAllNotificationsRead = useCallback(async () => {
+    const unreadItems = notifications.filter(item => !item.is_read);
+    if (unreadItems.length === 0) return;
     try {
       await notificationApi.markAllRead();
-      queryClient.invalidateQueries({ queryKey: ['notifications', currentUser?.id] });
+      setLocallyReadNotifications(prev => upsertReadNotifications(prev, unreadItems));
+      queryClient.setQueryData<NotificationListResponse>(
+        notificationQueryKey,
+        data => data
+          ? {
+            ...data,
+            items: data.items.map(item => ({ ...item, is_read: true })),
+            unread_count: 0,
+          }
+          : data,
+      );
     } catch {
       message.error('通知状态更新失败');
     }
-  }, [currentUser?.id, queryClient]);
+  }, [notificationQueryKey, notifications, queryClient]);
 
   const handleOpenNotificationLink = useCallback((item: UserNotification) => {
     if (!item.link_url) return;
     if (!item.is_read) {
-      void handleMarkNotificationRead(item.id);
+      void handleMarkMessageRead(item);
     }
     navigate(item.link_url);
-  }, [handleMarkNotificationRead, navigate]);
+  }, [handleMarkMessageRead, navigate]);
 
   /* ── Set default provider on load ── */
   useEffect(() => {
@@ -560,7 +648,7 @@ export const HomePage: React.FC = () => {
                         items={notifications}
                         unreadCount={unreadNotificationCount}
                         loading={notificationLoading}
-                        onMarkRead={handleMarkNotificationRead}
+                        onMarkRead={handleMarkMessageRead}
                         onMarkAllRead={handleMarkAllNotificationsRead}
                         onOpenLink={handleOpenNotificationLink}
                       />

@@ -222,7 +222,7 @@ export const TaskList: React.FC<TaskListProps> = ({
         <>
           <Row gutter={[16, 16]}>
             {tasks.map((task, i) => (
-              <Col key={task.id} xs={24} sm={12} md={8} lg={6}
+              <Col key={task.task_id} xs={24} sm={12} md={8} lg={6}
                 style={{ animation: `fadeInUp 0.4s var(--ease-out) ${Math.min(i, 11) * 0.04}s both` }}>
                 <TaskCard task={task} showLikes={activeFilter === "likeRanking"} />
               </Col>

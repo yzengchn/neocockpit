@@ -1,11 +1,12 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConfigProvider, theme } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { HomePage } from './pages/HomePage';
 import { TaskDetailPage } from './pages/TaskDetailPage';
 import ProfilePage from './pages/ProfilePage';
+import { initBaiduTongji, trackBaiduTongjiPageView } from '@/utils/analytics';
 import '@/styles/global.css';
 
 const queryClient = new QueryClient({
@@ -19,6 +20,26 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+const BaiduTongjiRouteTracker: React.FC = () => {
+  const location = useLocation();
+  const skipInitialPageView = React.useRef(true);
+
+  React.useEffect(() => {
+    initBaiduTongji();
+  }, []);
+
+  React.useEffect(() => {
+    if (skipInitialPageView.current) {
+      skipInitialPageView.current = false;
+      return;
+    }
+
+    trackBaiduTongjiPageView(`${location.pathname}${location.search}${location.hash}`);
+  }, [location.hash, location.pathname, location.search]);
+
+  return null;
+};
 
 const App: React.FC = () => {
    return (
@@ -48,6 +69,7 @@ const App: React.FC = () => {
     >
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
+          <BaiduTongjiRouteTracker />
           <div className="app-shell">
             {/* grid background */}
             <div style={{

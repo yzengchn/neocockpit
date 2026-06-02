@@ -27,7 +27,7 @@ export const TaskCard = React.memo<TaskCardProps>(({ task, showLikes = false }) 
   const isWallpaper = task.task_type === TaskType.WALLPAPER;
   const coverImageUrl = toResourceUrl(isDigitalHuman ? (task.avatar_image_url || '') : (task.background_image_url || task.preview_image_url || ''));
   const hasImage = Boolean(coverImageUrl);
-  const taskHref = `/tasks/${task.id}`;
+  const taskHref = `/tasks/${task.task_id}`;
 
   return (
     <Link
