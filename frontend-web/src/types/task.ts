@@ -56,14 +56,10 @@ export interface BuildTree {
 }
 
 export interface TaskListItem {
-  id: number;
   task_id: string;
   user_input: string;
   task_type: TaskType;
   ai_provider?: string;
-  user_id?: string | null;
-  author?: string;
-  icon_descriptions?: string[];
   status: TaskStatus;
   background_image_url?: string;
   preview_image_url?: string;
@@ -71,17 +67,27 @@ export interface TaskListItem {
   likes: number;
   views: number;
   created_at: string;
-  updated_at?: string;
+}
+
+export interface MyTaskListItem {
+  task_id: string;
+  user_input: string;
+  status: TaskStatus;
+  created_at: string;
 }
 
 export interface TaskActionResult {
-  id: number;
   task_id: string;
   task_type: TaskType;
   status: TaskStatus;
 }
 
 export interface Task extends TaskListItem {
+  id?: number;
+  user_id?: string | null;
+  author?: string;
+  icon_descriptions?: string[];
+  updated_at?: string;
   background_prompt?: string;
   icon_prompt?: string;
   normal_detail?: string;
@@ -139,32 +145,8 @@ export interface TaskCommentCreate {
 }
 
 export interface QueueStatus {
-  is_processing: boolean;
-  processing_task_ids: string[];
   processing_count: number;
   queued_count: number;
-  max_concurrent_tasks?: number;
-  max_concurrent_tasks_per_provider?: number;
-  providers?: Record<string, {
-    processing_count: number;
-    queued_count: number;
-    processing_task_ids: string[];
-  }>;
-  channels?: Record<string, {
-    provider: string;
-    name: string;
-    running_count: number;
-    max_concurrent: number;
-    processing_task_ids: string[];
-  }>;
-  channels_overview?: Array<{
-    id: string;
-    provider: string;
-    name: string;
-    max_concurrent: number;
-    weight: number;
-    running_count: number;
-  }>;
 }
 
 export interface TaskStats {
@@ -175,36 +157,15 @@ export interface TaskStats {
   by_type: Partial<Record<TaskType, number>>;
 }
 
-// Presence / heartbeat types
-
-export interface PresenceRegisterRequest {
-  session_id: string;
-  path?: string;
-}
-
-export interface PresenceHeartbeatRequest {
-  session_id: string;
-  path?: string;
-}
-
-export interface PresenceUnregisterRequest {
-  session_id: string;
-}
-
 export interface OnlineResponse {
   total: number;
-  paths: Record<string, number>;
 }
 
 // Icon description config types
 
 export interface IconDescription {
-  id: string;
   name: string;
-  directory_name: string;
   description: string;
-  enabled: boolean;
-  sort_order: number;
 }
 
 export interface IconDescriptionCreate {
@@ -225,11 +186,8 @@ export interface IconDescriptionUpdate {
 // AI Provider config types
 
 export interface AIProviderConfig {
-  id: string;
   name: string;
   value: string;
-  enabled: boolean;
-  sort_order: number;
 }
 
 export interface AIProviderConfigCreate {
@@ -266,9 +224,6 @@ export interface InkSignature {
 export interface UserInfo {
   id: string;
   nick_name: string;
-  credits: number;
-  last_login_at?: string | null;
-  last_login_ip?: string | null;
   created_at: string;
 }
 
@@ -277,7 +232,6 @@ export type NotificationMessageType = 'announcement' | 'notification';
 
 export interface UserNotification {
   id: string;
-  message_type: NotificationMessageType;
   title: string;
   content: string;
   link_url?: string | null;

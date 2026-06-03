@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Form, Input, Checkbox, message, Card, Row, Col, Tooltip, Segmented, Popover,
-  Badge, Button, Empty,
+  Badge, Button,
 } from 'antd';
 import type { FormInstance } from 'antd';
 import {
@@ -11,10 +11,11 @@ import {
   TeamOutlined, ThunderboltOutlined, UserOutlined, BulbOutlined,
   LogoutOutlined,
   PictureOutlined, AppstoreOutlined,
-  BellOutlined, CheckOutlined, ArrowRightOutlined,
+  BellOutlined,
 } from '@ant-design/icons';
 import { TaskFilter, TaskList } from '@/components/TaskList';
 import { ProviderField } from '@/components/ProviderField';
+import { NotificationPanel, mergeNotificationsWithLocalRead, upsertReadNotifications, markNotificationsReadInCache } from '@/components/NotificationPanel';
 import { taskApi, userApi, presenceApi, iconDescriptionApi, aiProviderApi, notificationApi, setUserAuth, clearUserAuth } from '@/services/api';
 import AuthModal from '@/components/AuthModal';
 import { usePresence } from '@/hooks/usePresence';
@@ -45,88 +46,23 @@ const TASK_CREATE_LABEL: Record<TaskType, string> = {
   [TaskType.DIY]: 'DIY生图任务',
 };
 
-const notificationAccent: Record<UserNotification['level'], string> = {
-  info: '#22c55e',
-  warning: '#f59e0b',
-  error: '#f87171',
-};
-
-const formatNotificationTime = (value?: string | null) => {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleString('zh-CN', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
-
-const getNotificationTimestamp = (item: UserNotification) => {
-  const timestamp = item.created_at ? new Date(item.created_at).getTime() : 0;
-  return Number.isNaN(timestamp) ? 0 : timestamp;
-};
-
-const mergeNotificationsWithLocalRead = (
-  items: UserNotification[],
-  locallyReadItems: UserNotification[],
-) => {
-  const byId = new Map<string, UserNotification>();
-  for (const item of items) {
-    byId.set(item.id, item);
-  }
-  for (const item of locallyReadItems) {
-    const current = byId.get(item.id);
-    byId.set(item.id, {
-      ...(current ?? item),
-      is_read: true,
-    });
-  }
-  return Array.from(byId.values()).sort(
-    (a, b) => getNotificationTimestamp(b) - getNotificationTimestamp(a),
-  );
-};
-
-const upsertReadNotifications = (
-  current: UserNotification[],
-  nextItems: UserNotification[],
-) => mergeNotificationsWithLocalRead(current, nextItems.map(item => ({ ...item, is_read: true })));
-
-const markNotificationsReadInCache = (
-  data: NotificationListResponse | undefined,
-  ids: Set<string>,
-): NotificationListResponse | undefined => {
-  if (!data) return data;
-  let newlyReadCount = 0;
-  const items = data.items.map((item) => {
-    if (!ids.has(item.id)) return item;
-    if (!item.is_read) newlyReadCount += 1;
-    return { ...item, is_read: true };
-  });
-  return {
-    ...data,
-    items,
-    unread_count: Math.max(0, data.unread_count - newlyReadCount),
-  };
-};
-
-type ApiError = {
+interface ApiError {
   response?: {
     status?: number;
     data?: {
       detail?: unknown;
     };
   };
-};
+}
 
-type CreateTaskOptions = {
+interface CreateTaskOptions {
   taskType: TaskType;
   form: FormInstance<TaskCreate>;
   includeIconDescriptions?: boolean;
-};
+}
 
 const readStoredUser = (): UserInfo | null => {
+  if (!localStorage.getItem('aigc_user_token')) return null;
   const raw = localStorage.getItem('aigc_user_info');
   try {
     return raw ? JSON.parse(raw) : null;
@@ -163,146 +99,6 @@ const uniqueTasksByFirstOccurrence = (items: TaskListItem[]) => {
   return Array.from(byId.values());
 };
 
-const NotificationPanel: React.FC<{
-  items: UserNotification[];
-  unreadCount: number;
-  loading: boolean;
-  onMarkRead: (item: UserNotification) => void;
-  onMarkAllRead: () => void;
-  onOpenLink: (item: UserNotification) => void;
-}> = ({ items, unreadCount, loading, onMarkRead, onMarkAllRead, onOpenLink }) => (
-  <div style={{ width: 420, maxWidth: 'calc(100vw - 32px)' }}>
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 12,
-      paddingBottom: 10,
-      marginBottom: 10,
-      borderBottom: '1px solid var(--c-border)',
-    }}>
-      <div>
-        <div style={{ color: 'var(--c-text)', fontWeight: 800, fontSize: 14 }}>通知</div>
-        <div style={{ color: 'var(--c-text-muted)', fontSize: 12 }}>
-          {unreadCount > 0 ? `${unreadCount} 条未读` : '暂无未读'}
-        </div>
-      </div>
-      <Button
-        size="small"
-        type="text"
-        icon={<CheckOutlined />}
-        disabled={unreadCount === 0 || loading}
-        onClick={onMarkAllRead}
-      >
-        全部已读
-      </Button>
-    </div>
-
-    {items.length === 0 ? (
-      <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无通知" />
-    ) : (
-      <div style={{ display: 'grid', gap: 10, maxHeight: 360, overflowY: 'auto', paddingRight: 4 }}>
-        {items.map((item) => {
-          const accent = notificationAccent[item.level] ?? notificationAccent.info;
-          return (
-            <div
-              key={item.id}
-              onClick={() => { if (!item.is_read) onMarkRead(item); }}
-              onKeyDown={(event) => {
-                if (item.is_read) return;
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  onMarkRead(item);
-                }
-              }}
-              role="button"
-              tabIndex={item.is_read ? -1 : 0}
-              style={{
-                width: '100%',
-                textAlign: 'left',
-                cursor: item.is_read ? 'default' : 'pointer',
-                border: `1px solid ${item.is_read ? 'var(--c-border)' : accent}`,
-                background: item.is_read ? 'rgba(15, 17, 25, 0.72)' : 'rgba(17, 24, 39, 0.92)',
-                borderRadius: 8,
-                padding: '10px 12px',
-                boxShadow: item.is_read ? 'none' : `0 0 18px ${accent}22`,
-                outline: 'none',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <span style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  background: accent,
-                  opacity: item.is_read ? 0.35 : 1,
-                  flex: '0 0 auto',
-                }} />
-                <span style={{ color: 'var(--c-text)', fontWeight: 700, fontSize: 13, flex: 1 }}>
-                  {item.title}
-                </span>
-                <span style={{ color: 'var(--c-text-muted)', fontSize: 11 }}>
-                  {formatNotificationTime(item.created_at)}
-                </span>
-              </div>
-              <div style={{
-                color: item.is_read ? 'var(--c-text-muted)' : 'var(--c-text-secondary)',
-                fontSize: 12,
-                lineHeight: 1.6,
-                display: 'flex',
-                alignItems: 'flex-end',
-                gap: 6,
-              }}>
-                <span style={{
-                  flex: 1,
-                  minWidth: 0,
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
-                  whiteSpace: 'normal',
-                  wordBreak: 'break-word',
-                }}>
-                  {item.content}
-                </span>
-                {item.link_url && (
-                  <button
-                    type="button"
-                    aria-label="直达任务详情"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onOpenLink(item);
-                    }}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      flex: '0 0 auto',
-                      gap: 3,
-                      padding: '1px 6px',
-                      minHeight: 22,
-                      borderRadius: 6,
-                      border: `1px solid ${accent}66`,
-                      background: `${accent}14`,
-                      color: accent,
-                      cursor: 'pointer',
-                      fontSize: 12,
-                      fontWeight: 800,
-                      lineHeight: 1,
-                    }}
-                  >
-                    To
-                    <ArrowRightOutlined style={{ fontSize: 10 }} />
-                  </button>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    )}
-  </div>
-);
-
 /* ── Stat chip ──────────────────────────────────── */
 const StatChip: React.FC<{
   icon: React.ReactNode;
@@ -330,11 +126,10 @@ export const HomePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TaskType>(TaskType.WALLPAPER);
   const [taskFilter, setTaskFilter] = useState<TaskFilter>('all');
   const queryClient = useQueryClient();
-  const [authVersion, setAuthVersion] = useState(0);
-  const [authModalOpen, setAuthModalOpen] = useState(() => !localStorage.getItem('aigc_user_token'));
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   /* ── Presence heartbeat (user-scoped) ── */
-  usePresence('/');
+  usePresence();
   const { isIdle } = useIdleDetector();
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(readStoredUser);
   const [locallyReadNotifications, setLocallyReadNotifications] = useState<UserNotification[]>([]);
@@ -349,7 +144,7 @@ export const HomePage: React.FC = () => {
     const token = localStorage.getItem('aigc_user_token');
     if (!token) return;
 
-    userApi.verify(token)
+    userApi.verify()
       .then((user) => {
         setCurrentUser(user);
         setAuthModalOpen(false);
@@ -358,7 +153,6 @@ export const HomePage: React.FC = () => {
         // Token invalid or expired, clear auth
         clearUserAuth();
         setCurrentUser(null);
-        setAuthModalOpen(true);
       });
   }, []);
 
@@ -367,15 +161,11 @@ export const HomePage: React.FC = () => {
     setUserAuth(token, user as unknown as UserInfo, signature);
     setCurrentUser(user as unknown as UserInfo);
     setAuthModalOpen(false);
-    // Force re-render so toResourceUrl() picks up new token — no network refetch needed
-    setAuthVersion((v) => v + 1);
   }, []);
 
   const handleLogout = useCallback(() => {
     clearUserAuth();
     setCurrentUser(null);
-    setAuthModalOpen(true);
-    setAuthVersion((v) => v + 1);
     queryClient.invalidateQueries();
   }, [queryClient]);
 
@@ -448,19 +238,19 @@ export const HomePage: React.FC = () => {
 
   const { data: onlineData } = useQuery({
     queryKey: ['onlineCount'],
-    queryFn: () => presenceApi.getOnline('/'),
+    queryFn: () => presenceApi.getOnline(),
     refetchInterval: isIdle ? POLL.DEEP_IDLE : POLL.ONLINE,
     refetchIntervalInBackground: false,
   });
 
   const { data: iconDescList = [] } = useQuery({
     queryKey: ['iconDescriptionsEnabled'],
-    queryFn: () => iconDescriptionApi.list(true),
+    queryFn: () => iconDescriptionApi.list(),
   });
 
   const { data: aiProviderList = [] } = useQuery({
     queryKey: ['aiProvidersEnabled'],
-    queryFn: () => aiProviderApi.list(true),
+    queryFn: () => aiProviderApi.list(),
     staleTime: 0,
   });
 
@@ -475,7 +265,7 @@ export const HomePage: React.FC = () => {
     isFetching: notificationLoading,
   } = useQuery({
     queryKey: notificationQueryKey,
-    queryFn: () => notificationApi.list(20),
+    queryFn: () => notificationApi.list(),
     enabled: Boolean(currentUser),
     refetchInterval: isIdle ? POLL.DEEP_IDLE : POLL.ONLINE,
     refetchIntervalInBackground: false,
@@ -575,6 +365,11 @@ export const HomePage: React.FC = () => {
 
   const createTask = useCallback(async (values: TaskCreate, options: CreateTaskOptions) => {
     const { taskType, form, includeIconDescriptions = false } = options;
+    if (!currentUser) {
+      setAuthModalOpen(true);
+      message.warning('请先登录后再创建任务');
+      return;
+    }
     setSubmitting(true);
     try {
       await taskApi.createTask({
@@ -589,7 +384,10 @@ export const HomePage: React.FC = () => {
       refetch();
       refetchTaskStats();
     } catch (err: unknown) {
-      if (getApiErrorStatus(err) === 402) {
+      if (getApiErrorStatus(err) === 401) {
+        setAuthModalOpen(true);
+        message.warning(getApiErrorDetail(err) || '请先登录后再创建任务');
+      } else if (getApiErrorStatus(err) === 402) {
         message.error(getApiErrorDetail(err) || '积分不足');
       } else {
         message.error('任务创建失败');
@@ -597,7 +395,7 @@ export const HomePage: React.FC = () => {
     } finally {
       setSubmitting(false);
     }
-  }, [getCreditPrice, queryClient, refetch, refetchTaskStats, resetFormPreserveProvider]);
+  }, [currentUser, getCreditPrice, queryClient, refetch, refetchTaskStats, resetFormPreserveProvider]);
 
   /* ── Handlers ── */
   const handleCreateVehicleTheme = useCallback((values: TaskCreate) => {
@@ -640,7 +438,7 @@ export const HomePage: React.FC = () => {
               }}>
                 NeoCockpit
               </h2>
-              {currentUser && (
+              {currentUser ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <Popover
                     content={(
@@ -723,6 +521,16 @@ export const HomePage: React.FC = () => {
                     </span>
                   </Popover>
                 </div>
+              ) : (
+                <Button
+                  type="primary"
+                  size="small"
+                  onClick={() => setAuthModalOpen(true)}
+                  className="neon-btn"
+                  style={{ borderRadius: 10, fontWeight: 700 }}
+                >
+                  登录 / 注册
+                </Button>
               )}
             </div>
 
@@ -764,7 +572,7 @@ export const HomePage: React.FC = () => {
                     <Form.Item name="icon_descriptions" rules={[{ required: true, message: '请至少选择一个图标' }]}>
                       <Checkbox.Group style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                         {iconDescList.map((d) => (
-                          <Tooltip key={d.id} title={d.description}>
+                          <Tooltip key={d.name} title={d.description}>
                             <Checkbox
                               value={d.name}
                               style={{
@@ -854,7 +662,6 @@ export const HomePage: React.FC = () => {
         styles={{ body: { padding: 28 } }}
       >
         <TaskList
-          key={authVersion}
           tasks={tasks}
           loading={isLoading}
           activeFilter={taskFilter}
@@ -870,6 +677,7 @@ export const HomePage: React.FC = () => {
         onLogin={handleUserLogin}
         onRegister={userApi.register}
         onLoginBySignature={userApi.login}
+        onCancel={() => setAuthModalOpen(false)}
       />
     </div>
   );

@@ -25,7 +25,9 @@ export const TaskCard = React.memo<TaskCardProps>(({ task, showLikes = false }) 
   const isDigitalHuman = task.task_type === TaskType.DIGITAL_HUMAN;
   const isDIY = task.task_type === TaskType.DIY;
   const isWallpaper = task.task_type === TaskType.WALLPAPER;
-  const coverImageUrl = toResourceUrl(isDigitalHuman ? (task.avatar_image_url || '') : (task.background_image_url || task.preview_image_url || ''));
+  const coverImageUrl = toResourceUrl(
+    isDigitalHuman ? (task.avatar_image_url || '') : (task.background_image_url || task.preview_image_url || ''),
+  );
   const hasImage = Boolean(coverImageUrl);
   const taskHref = `/tasks/${task.task_id}`;
 

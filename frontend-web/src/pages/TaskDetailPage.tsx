@@ -10,7 +10,8 @@ import { CommentSection } from '@/components/TaskDetail/CommentSection';
 import { BuildTreeViewer } from '@/components/BuildTree';
 import { ImagePreview } from '@/components/ImagePreview';
 import { Portrait3DViewer } from '@/components/Portrait3DViewer';
-import { taskApi, userApi } from '@/services/api';
+import AuthModal from '@/components/AuthModal';
+import { taskApi, userApi, setUserAuth } from '@/services/api';
 import { useIdleDetector } from '@/hooks/useIdleDetector';
 import { getUserInfo, isUserLoggedIn } from '@/services/api';
 import { TaskStatus, TaskType, isActiveTaskStatus } from '@/types/task';
@@ -87,6 +88,7 @@ export const TaskDetailPage: React.FC = () => {
   const [selectedDirectory, setSelectedDirectory] = useState<string>();
   const [previewViewMode, setPreviewViewMode] = useState<'single' | 'grid'>('single');
   const [downloading, setDownloading] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   const { isIdle } = useIdleDetector();
 
   const queryClient = useQueryClient();
@@ -129,17 +131,17 @@ export const TaskDetailPage: React.FC = () => {
       isActiveTaskStatus(query.state.data?.status) ? 2000 : false,
   });
   const currentUser = getUserInfo();
+  const isLoggedIn = isUserLoggedIn();
   const isOwnTask = Boolean(task?.user_id && currentUser?.id === task.user_id);
 
-  // Fetch file tree by scanning the output directory directly
+  // Fetch file tree from database (public access)
   const { data: fileTree } = useQuery<BuildTree>({
     queryKey: ['fileTree', taskId],
     queryFn: () => taskApi.getFileTree(taskId!),
     enabled: !!taskId && task?.status === TaskStatus.COMPLETED,
   });
 
-  // Collect image resource paths from fileTree and keep them unauthenticated here.
-  // ImagePreview appends the user token immediately before rendering.
+  // Collect image resource paths from fileTree (resources are publicly accessible)
   const allBuildImages = useMemo(() => {
     if (!fileTree || task?.status !== TaskStatus.COMPLETED) return undefined;
     const images = collectBuildImages(fileTree);
@@ -338,7 +340,7 @@ export const TaskDetailPage: React.FC = () => {
         {/* ── Right column: preview + prompts + images ── */}
         <Col xs={24} md={16}>
           {/* Digital Human 3D Preview */}
-          {dh && task.avatar_atlas_url && portraitMeshUrl && (
+          {dh && isLoggedIn && task.avatar_atlas_url && portraitMeshUrl && (
             <Card style={{ ...glassCardOverflow, marginBottom: 24 }} styles={{ body: { padding: 0 } }}>
               <Portrait3DViewer
                 atlasUrl={task.avatar_atlas_url || ''}
@@ -556,7 +558,7 @@ export const TaskDetailPage: React.FC = () => {
           )}
 
           {/* ── Generated images ── */}
-          {!diy && (task.background_image_url || task.icon_image_url || task.avatar_image_url || task.texture_albedo_url || task.texture_normal_url || task.view_image_urls) && (
+          {(task.background_image_url || task.icon_image_url || task.avatar_image_url || task.texture_albedo_url || task.texture_normal_url || task.view_image_urls) && (
             <Card
               style={{
                 ...glassCardOverflow,
@@ -590,6 +592,7 @@ export const TaskDetailPage: React.FC = () => {
                 {dh && <Col xs={24} md={12}><ImageBlock label="法线贴图" src={task.texture_normal_url} alt="Normal" /></Col>}
                 {!dh && !diy && !wallpaper && <Col xs={24} md={12}><ImageBlock label="背景图" src={task.background_image_url} alt="Background" /></Col>}
                 {!dh && !diy && !wallpaper && <Col xs={24} md={12}><ImageBlock label="图标" src={task.icon_image_url} alt="Icon" /></Col>}
+                {diy && <Col xs={24} md={12}><ImageBlock label="生成图片" src={task.background_image_url} alt="Generated" /></Col>}
                 {wallpaper && <Col xs={24} md={12}><ImageBlock label="壁纸" src={task.background_image_url} alt="Wallpaper" /></Col>}
               </Row>
             </Card>
@@ -614,6 +617,10 @@ export const TaskDetailPage: React.FC = () => {
               loading={downloading}
               className="neon-btn"
               onClick={async () => {
+                if (!isLoggedIn) {
+                  setAuthModalOpen(true);
+                  return;
+                }
                 if (downloading) return;
                 setDownloading(true);
                 try {
@@ -700,6 +707,19 @@ export const TaskDetailPage: React.FC = () => {
       {task?.status === TaskStatus.COMPLETED && taskId && (
         <CommentSection taskId={taskId} isIdle={isIdle} />
       )}
+
+      <AuthModal
+        open={authModalOpen}
+        onLogin={(token, user, signature) => {
+          setUserAuth(token, user as any, signature);
+          setAuthModalOpen(false);
+          queryClient.invalidateQueries({ queryKey: ['my-credits'] });
+          queryClient.invalidateQueries({ queryKey: ['task', taskId] });
+        }}
+        onRegister={userApi.register}
+        onLoginBySignature={userApi.login}
+        onCancel={() => setAuthModalOpen(false)}
+      />
     </div>
   );
 };

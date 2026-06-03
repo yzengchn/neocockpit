@@ -3,6 +3,7 @@ import type {
   Task,
   TaskActionResult,
   TaskListItem,
+  MyTaskListItem,
   TaskCreate,
   TaskStats,
   TaskType,
@@ -87,8 +88,8 @@ export const taskApi = {
     return response.data;
   },
 
-  recordTaskView: async (taskId: string): Promise<{ id: number; task_id: string; views: number }> => {
-    const response = await api.post<{ id: number; task_id: string; views: number }>(`/tasks/${taskId}/view`);
+  recordTaskView: async (taskId: string): Promise<{ task_id: string; views: number }> => {
+    const response = await api.post<{ task_id: string; views: number }>(`/tasks/${taskId}/view`);
     return response.data;
   },
 
@@ -122,8 +123,8 @@ export const taskApi = {
     return response.data;
   },
 
-  listMyTasks: async (skip = 0, limit = 6): Promise<{ items: TaskListItem[]; total: number }> => {
-    const response = await api.get<{ items: TaskListItem[]; total: number }>('/tasks/my-tasks', { params: { skip, limit } });
+  listMyTasks: async (skip = 0, limit = 6): Promise<{ items: MyTaskListItem[]; total: number }> => {
+    const response = await api.get<{ items: MyTaskListItem[]; total: number }>('/tasks/my-tasks', { params: { skip, limit } });
     return response.data;
   },
 
@@ -171,20 +172,20 @@ export const taskApi = {
 // ---------------------------------------------------------------------------
 
 export const presenceApi = {
-  register: async (sessionId: string, path?: string): Promise<void> => {
-    await api.post('/presence/register', { session_id: sessionId, path });
+  register: async (): Promise<void> => {
+    await api.post('/presence/register');
   },
 
-  heartbeat: async (sessionId: string, path?: string): Promise<void> => {
-    await api.post('/presence/heartbeat', { session_id: sessionId, path });
+  heartbeat: async (): Promise<void> => {
+    await api.post('/presence/heartbeat');
   },
 
-  unregister: async (sessionId: string): Promise<void> => {
-    await api.post('/presence/unregister', { session_id: sessionId });
+  unregister: async (): Promise<void> => {
+    await api.delete('/presence/unregister');
   },
 
-  getOnline: async (path?: string): Promise<OnlineResponse> => {
-    const response = await api.get<OnlineResponse>('/presence/online', { params: path ? { path } : {} });
+  getOnline: async (): Promise<OnlineResponse> => {
+    const response = await api.get<OnlineResponse>('/presence/online');
     return response.data;
   },
 };
@@ -194,10 +195,8 @@ export const presenceApi = {
 // ---------------------------------------------------------------------------
 
 export const iconDescriptionApi = {
-  list: async (enabledOnly = false): Promise<IconDescription[]> => {
-    const response = await api.get<IconDescription[]>('/icon-descriptions/', {
-      params: enabledOnly ? { enabled_only: true } : {},
-    });
+  list: async (): Promise<IconDescription[]> => {
+    const response = await api.get<IconDescription[]>('/icon-descriptions/');
     return response.data;
   },
 };
@@ -207,10 +206,8 @@ export const iconDescriptionApi = {
 // ---------------------------------------------------------------------------
 
 export const aiProviderApi = {
-  list: async (enabledOnly = false): Promise<AIProviderConfig[]> => {
-    const response = await api.get<AIProviderConfig[]>('/ai-providers/', {
-      params: enabledOnly ? { enabled_only: true } : {},
-    });
+  list: async (): Promise<AIProviderConfig[]> => {
+    const response = await api.get<AIProviderConfig[]>('/ai-providers/');
     return response.data;
   },
 };
@@ -239,8 +236,8 @@ export const userApi = {
     return response.data;
   },
 
-  verify: async (token: string): Promise<UserInfo> => {
-    const response = await api.get<UserInfo>('/user/verify', { params: { token } });
+  verify: async (): Promise<UserInfo> => {
+    const response = await api.get<UserInfo>('/user/verify');
     return response.data;
   },
 
@@ -285,7 +282,7 @@ export const userApi = {
     return res.data;
   },
 
-  getCreditPrices: async (): Promise<Array<{ action: string; price: number; label: string }>> => {
+  getCreditPrices: async (): Promise<Array<{ action: string; price: number }>> => {
     const res = await api.get('/user/credit-prices');
     return res.data;
   },
@@ -296,8 +293,8 @@ export const userApi = {
 // ---------------------------------------------------------------------------
 
 export const notificationApi = {
-  list: async (limit = 20): Promise<NotificationListResponse> => {
-    const response = await api.get<NotificationListResponse>('/notifications/', { params: { limit } });
+  list: async (): Promise<NotificationListResponse> => {
+    const response = await api.get<NotificationListResponse>('/notifications/');
     return response.data;
   },
 

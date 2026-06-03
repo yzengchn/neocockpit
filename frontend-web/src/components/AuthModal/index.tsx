@@ -53,6 +53,7 @@ interface AuthModalProps {
     nickName: string,
     signature: InkSignature,
   ) => Promise<{ token: string; user: { id: string; nick_name: string } }>;
+  onCancel?: () => void; // 新增：取消回调
 }
 
 type AuthMode = "login" | "register";
@@ -63,6 +64,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
   onLogin,
   onRegister,
   onLoginBySignature,
+  onCancel,
 }) => {
   const [mode, setMode] = useState<AuthMode>("login");
   const [step, setStep] = useState<AuthStep>(1);
@@ -322,7 +324,9 @@ const AuthModal: React.FC<AuthModalProps> = ({
     <Modal
       open={open}
       footer={null}
-      closable={false}
+      closable={!!onCancel}
+      onCancel={onCancel}
+      maskClosable={!!onCancel}
       centered
       width={490}
       styles={{

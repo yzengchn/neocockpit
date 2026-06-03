@@ -10,7 +10,7 @@ const HEARTBEAT_INTERVAL = 20_000;
  * are not counted toward the online user total. Reacts to login/logout via
  * the custom `aigc-auth-change` event dispatched by setUserAuth/clearUserAuth.
  */
-export function usePresence(path = '/') {
+export function usePresence() {
   const [userId, setUserId] = useState<string | null>(() => getUserInfo()?.id ?? null);
 
   useEffect(() => {
@@ -26,15 +26,14 @@ export function usePresence(path = '/') {
   useEffect(() => {
     if (!userId || !isUserLoggedIn()) return;
 
-    presenceApi.register(path).catch(() => {});
+    presenceApi.register().catch(() => {});
     const interval = setInterval(() => {
-      presenceApi.heartbeat(path).catch(() => {});
+      presenceApi.heartbeat().catch(() => {});
     }, HEARTBEAT_INTERVAL);
 
     return () => {
       clearInterval(interval);
       // Backend TTL will expire the entry naturally if the user closes the tab.
-      // We do unregister on explicit logout via clearUserAuth → auth-change event.
     };
-  }, [path, userId]);
+  }, [userId]);
 }

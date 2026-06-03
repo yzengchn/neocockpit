@@ -32,9 +32,9 @@ const stableImageStyle: React.CSSProperties = {
 /** Reusable labeled image block (used in TaskDetailPage generated results). */
 export const ImageBlock: React.FC<ImageBlockProps> = ({ label, src, alt }) => {
   const [previewOpen, setPreviewOpen] = useState(false);
-  const authSrc = src ? toResourceUrl(src) : '';
+  const imageSrc = src ? toResourceUrl(src) : '';
 
-  if (!src || !authSrc) return null;
+  if (!src || !imageSrc) return null;
 
   return (
     <>
@@ -47,15 +47,15 @@ export const ImageBlock: React.FC<ImageBlockProps> = ({ label, src, alt }) => {
           onClick={() => setPreviewOpen(true)}
           style={previewButtonStyle}
         >
-          <img src={authSrc} alt={alt} style={stableImageStyle} />
+          <img src={imageSrc} alt={alt} style={stableImageStyle} />
         </button>
       </div>
       <Image
-        src={authSrc}
+        src={imageSrc}
         alt={alt}
         wrapperStyle={{ display: 'none' }}
         preview={{
-          src: authSrc,
+          src: imageSrc,
           visible: previewOpen,
           onVisibleChange: (visible) => setPreviewOpen(visible),
         }}

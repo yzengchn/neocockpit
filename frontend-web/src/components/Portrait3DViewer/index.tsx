@@ -212,7 +212,7 @@ function loadAtlasTexture(gl: WebGL2RenderingContext, url: string): Promise<WebG
       resolve(texture);
     };
     image.onerror = () => reject(new Error(`Failed to load atlas texture: ${url}`));
-    image.src = authUrl(url);
+    image.src = url;
   });
 }
 
@@ -283,17 +283,8 @@ function buildGeometry(mesh: PortraitMeshJson): GeometryBuffers {
   };
 }
 
-function authUrl(url: string): string {
-  const token = localStorage.getItem('aigc_user_token');
-  if (token && url.startsWith('/api/resource/')) {
-    const sep = url.includes('?') ? '&' : '?';
-    return url + sep + 'token=' + encodeURIComponent(token);
-  }
-  return url;
-}
-
 async function fetchGeometry(meshUrl: string, signal: AbortSignal): Promise<GeometryBuffers> {
-  const response = await fetch(authUrl(meshUrl), { signal, cache: 'no-store' });
+  const response = await fetch(meshUrl, { signal, cache: 'no-store' });
   if (!response.ok) {
     throw new Error(`Failed to load portrait 3D mesh: ${response.status}`);
   }
@@ -528,4 +519,3 @@ export const Portrait3DViewer: React.FC<Portrait3DViewerProps> = ({
 };
 
 export default Portrait3DViewer;
-

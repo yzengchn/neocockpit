@@ -5,7 +5,7 @@ import { ArrowLeftOutlined, UserOutlined, CheckCircleFilled, CalendarOutlined, F
 import { glassCard, gradientHeading } from '@/constants/styles';
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { userApi, taskApi } from '@/services/api';
-import { ACTION_LABELS, TaskStatus, TaskListItem } from '@/types/task';
+import { ACTION_LABELS, MyTaskListItem, TaskStatus } from '@/types/task';
 import { getStoredSignature } from '@/services/api';
 import type { InkSignature } from '@/types/task';
 import { statusConfig } from '@/constants/status';
@@ -474,7 +474,7 @@ const ProfilePage: React.FC = () => {
               >
               <Table
                 dataSource={myTasks}
-                rowKey="id"
+                rowKey="task_id"
                 size="small"
                 pagination={false}
                 columns={[
@@ -513,7 +513,7 @@ const ProfilePage: React.FC = () => {
                   },
                   {
                     title: '', key: 'action', width: 70,
-                    render: (_: unknown, record: TaskListItem) => (
+                    render: (_: unknown, record: MyTaskListItem) => (
                       <Button type="link" size="small"
                         style={{ color: 'var(--c-accent)', padding: 0, fontSize: 12 }}
                         onClick={() => navigate(`/tasks/${record.task_id}`)}
