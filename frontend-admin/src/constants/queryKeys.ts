@@ -21,4 +21,5 @@ export const ADMIN_QUERY_KEYS = {
     page,
     pageSize,
   ] as const,
+  feedbacks: ['admin-feedbacks'],
 } as const;

@@ -12,6 +12,7 @@ import {
   BellOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  MessageOutlined,
 } from '@ant-design/icons';
 import { clearAdminToken } from '@/services/adminToken';
 import { ADMIN_QUERY_KEYS } from '@/constants/queryKeys';
@@ -26,6 +27,7 @@ const UserPanel = lazy(() => import('@/pages/Admin/UserPanel').then(({ UserPanel
 const CreditPricePanel = lazy(() => import('@/pages/Admin/CreditPricePanel').then(({ CreditPricePanel }) => ({ default: CreditPricePanel })));
 const DownloadPanel = lazy(() => import('@/pages/Admin/DownloadPanel').then(({ DownloadPanel }) => ({ default: DownloadPanel })));
 const NotificationPanel = lazy(() => import('@/pages/Admin/NotificationPanel').then(({ NotificationPanel }) => ({ default: NotificationPanel })));
+const FeedbackPanel = lazy(() => import('@/pages/Admin/FeedbackPanel').then(({ FeedbackPanel }) => ({ default: FeedbackPanel })));
 
 type AdminTabKey =
   | 'tasks'
@@ -35,7 +37,8 @@ type AdminTabKey =
   | 'users'
   | 'credit-prices'
   | 'downloads'
-  | 'notifications';
+  | 'notifications'
+  | 'feedbacks';
 
 const ADMIN_TABS: Array<{
   key: AdminTabKey;
@@ -52,6 +55,7 @@ const ADMIN_TABS: Array<{
   { key: 'credit-prices', title: '积分单价', icon: <DollarOutlined />, Component: CreditPricePanel, queryKeys: [ADMIN_QUERY_KEYS.creditPrices] },
   { key: 'downloads', title: '积分记录', icon: <DownloadOutlined />, Component: DownloadPanel, queryKeys: [ADMIN_QUERY_KEYS.downloadList, ADMIN_QUERY_KEYS.downloadStats] },
   { key: 'notifications', title: '公告通知', icon: <BellOutlined />, Component: NotificationPanel, queryKeys: [ADMIN_QUERY_KEYS.notifications] },
+  { key: 'feedbacks', title: '建议反馈', icon: <MessageOutlined />, Component: FeedbackPanel, queryKeys: [ADMIN_QUERY_KEYS.feedbacks] },
 ];
 
 const { Sider, Content } = Layout;

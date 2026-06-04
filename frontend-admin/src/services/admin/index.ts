@@ -234,3 +234,33 @@ export const adminNotificationApi = {
     await api.delete(`/admin/notifications/${id}`);
   },
 };
+
+// ── 反馈管理 ──────────────────────────────────────────────────────────
+
+export interface FeedbackItem {
+  id: string;
+  user_id: string | null;
+  user_nick_name: string | null;
+  title: string;
+  content: string;
+  contact: string;
+  ip_address: string | null;
+  created_at: string;
+}
+
+export interface FeedbackPageResponse {
+  items: FeedbackItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export const adminFeedbackApi = {
+  list: async (page = 1, pageSize = 20): Promise<FeedbackPageResponse> => {
+    const res = await api.get<FeedbackPageResponse>('/admin/feedbacks/', {
+      params: { page, page_size: pageSize },
+    });
+    return res.data;
+  },
+};
