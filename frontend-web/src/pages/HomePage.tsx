@@ -523,11 +523,24 @@ export const HomePage: React.FC = () => {
                 </div>
               ) : (
                 <Button
-                  type="primary"
                   size="small"
                   onClick={() => setAuthModalOpen(true)}
-                  className="neon-btn"
-                  style={{ borderRadius: 10, fontWeight: 700 }}
+                  style={{
+                    fontWeight: 700,
+                    fontSize: 13,
+                    height: 32,
+                    padding: '0 20px',
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#818cf8',
+                    letterSpacing: '0.3px',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = '#a5b4fc';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = '#818cf8';
+                  }}
                 >
                   登录 / 注册
                 </Button>
