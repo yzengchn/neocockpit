@@ -19,6 +19,8 @@ import type {
   TaskComment,
   TaskCommentCreate,
   TaskCommentListResponse,
+  FeedbackCreate,
+  FeedbackSubmitResponse,
 } from '@/types/task';
 
 const USER_TOKEN_KEY = 'aigc_user_token';
@@ -124,7 +126,12 @@ export const taskApi = {
   },
 
   listMyTasks: async (skip = 0, limit = 6): Promise<{ items: MyTaskListItem[]; total: number }> => {
-    const response = await api.get<{ items: MyTaskListItem[]; total: number }>('/tasks/my-tasks', { params: { skip, limit } });
+    const response = await api.get<{ items: MyTaskListItem[]; total: number }>('/user/tasks', { params: { skip, limit } });
+    return response.data;
+  },
+
+  deleteMyTask: async (taskId: string): Promise<{ detail: string }> => {
+    const response = await api.delete<{ detail: string }>(`/tasks/${taskId}`);
     return response.data;
   },
 
@@ -208,6 +215,17 @@ export const iconDescriptionApi = {
 export const aiProviderApi = {
   list: async (): Promise<AIProviderConfig[]> => {
     const response = await api.get<AIProviderConfig[]>('/ai-providers/');
+    return response.data;
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Feedback API
+// ---------------------------------------------------------------------------
+
+export const feedbackApi = {
+  submit: async (data: FeedbackCreate): Promise<FeedbackSubmitResponse> => {
+    const response = await api.post<FeedbackSubmitResponse>('/feedback/', data);
     return response.data;
   },
 };

@@ -79,8 +79,8 @@ export const TaskList: React.FC<TaskListProps> = ({
   }
 
   return (
-    <div>
-      <div style={{
+    <div className="task-list-section">
+      <div className="task-list-toolbar" style={{
         marginBottom: 22,
         display: 'flex',
         alignItems: 'center',
@@ -88,7 +88,7 @@ export const TaskList: React.FC<TaskListProps> = ({
         gap: 16,
         flexWrap: 'wrap',
       }}>
-        <div style={{ display: 'flex', gap: 0 }}>
+        <div className="task-list-rank-tabs" style={{ display: 'flex', gap: 0 }}>
           <button
             type="button"
             onClick={() => onFilterChange('all' as TaskFilter)}
@@ -162,7 +162,7 @@ export const TaskList: React.FC<TaskListProps> = ({
             Hot100
           </button>
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end' }}>
+        <div className="task-list-type-filters" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end' }}>
           {filterOptions.map((option) => {
             const active = activeFilter === option.key;
             return (
@@ -206,9 +206,9 @@ export const TaskList: React.FC<TaskListProps> = ({
         />
       ) : (
         <>
-          <Row gutter={[16, 16]}>
+          <Row className="task-list-grid" gutter={[16, 16]}>
             {tasks.map((task, i) => (
-              <Col key={task.task_id} xs={24} sm={12} md={8} lg={6}
+              <Col key={task.task_id} xs={24} sm={12} md={8} lg={6} className="task-list-grid__item"
                 style={{ animation: `fadeInUp 0.4s var(--ease-out) ${Math.min(i, 11) * 0.04}s both` }}>
                 <TaskCard task={task} showLikes={activeFilter === "likeRanking"} />
               </Col>

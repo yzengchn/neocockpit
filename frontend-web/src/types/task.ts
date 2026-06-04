@@ -144,6 +144,17 @@ export interface TaskCommentCreate {
   parent_id?: string | null;
 }
 
+export interface FeedbackCreate {
+  title: string;
+  content: string;
+  contact: string;
+}
+
+export interface FeedbackSubmitResponse {
+  id: string;
+  message: string;
+}
+
 export interface QueueStatus {
   processing_count: number;
   queued_count: number;

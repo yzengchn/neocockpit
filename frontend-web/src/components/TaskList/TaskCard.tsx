@@ -33,6 +33,7 @@ export const TaskCard = React.memo<TaskCardProps>(({ task, showLikes = false }) 
 
   return (
     <Link
+      className="task-card-link"
       to={taskHref}
       aria-label={`查看任务详情：${task.user_input}`}
       style={{
@@ -43,6 +44,7 @@ export const TaskCard = React.memo<TaskCardProps>(({ task, showLikes = false }) 
       }}
     >
     <Card
+      className="task-card"
       hoverable
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
@@ -56,7 +58,7 @@ export const TaskCard = React.memo<TaskCardProps>(({ task, showLikes = false }) 
       }}
       styles={{ body: { padding: 0 } }}
       cover={
-        <div style={{ height: 190, overflow: 'hidden', background: cfg.bg, position: 'relative' }}>
+        <div className="task-card__cover" style={{ height: 190, overflow: 'hidden', background: cfg.bg, position: 'relative' }}>
           {hasImage ? (
             <img
               alt="preview"
@@ -154,7 +156,7 @@ export const TaskCard = React.memo<TaskCardProps>(({ task, showLikes = false }) 
         </div>
       }
     >
-      <div style={{ padding: 16 }}>
+      <div className="task-card__body" style={{ padding: 16 }}>
         <Space direction="vertical" style={{ width: '100%' }} size={10}>
           <Text ellipsis style={{
             fontSize: 14, lineHeight: 1.5, fontWeight: 600,
@@ -162,7 +164,7 @@ export const TaskCard = React.memo<TaskCardProps>(({ task, showLikes = false }) 
           }}>
             {task.user_input}
           </Text>
-          <div style={{
+          <div className="task-card__meta" style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             paddingTop: 10, borderTop: '1px solid var(--c-border)',
           }}>
@@ -182,7 +184,7 @@ export const TaskCard = React.memo<TaskCardProps>(({ task, showLikes = false }) 
                 </Tag>
               )}
             </div>
-            <div style={{
+            <div className="task-card__metrics" style={{
               display: 'flex', alignItems: 'center', gap: 10,
               marginLeft: 'auto', flexShrink: 0,
             }}>

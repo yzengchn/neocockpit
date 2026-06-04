@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Card, message, Row, Col, Tag, Table } from 'antd';
-import { ArrowLeftOutlined, UserOutlined, CheckCircleFilled, CalendarOutlined, FireOutlined, EyeOutlined } from '@ant-design/icons';
+import { Button, Card, message, Popconfirm, Row, Col, Tag, Table, Space } from 'antd';
+import { ArrowLeftOutlined, UserOutlined, CheckCircleFilled, CalendarOutlined, FireOutlined, EyeOutlined, DeleteOutlined } from '@ant-design/icons';
 import { glassCard, gradientHeading } from '@/constants/styles';
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { userApi, taskApi } from '@/services/api';
@@ -92,6 +92,7 @@ const SignatureGrid: React.FC<{ signature: InkSignature; size?: number }> = ({
   signature,
   size = 200,
 }) => {
+  const [visible, setVisible] = useState(false);
   const gridSize = 3;
   const cellSize = size / gridSize;
   const traversal = signature.grid_traversal;
@@ -108,8 +109,49 @@ const SignatureGrid: React.FC<{ signature: InkSignature; size?: number }> = ({
     return map;
   }, [cellSize]);
 
+  if (!visible) {
+    return (
+      <button
+        type="button"
+        onClick={() => setVisible(true)}
+        style={{
+          width: '100%',
+          minHeight: size,
+          border: '1px solid rgba(99,102,241,0.15)',
+          borderRadius: 12,
+          background: 'rgba(14,16,24,0.42)',
+          color: 'var(--c-text-muted)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          cursor: 'pointer',
+          padding: 12,
+        }}
+      >
+        <EyeOutlined style={{ fontSize: 18, color: 'var(--c-accent)' }} />
+        <span style={{ fontSize: 12 }}>点击查看量化路径图</span>
+      </button>
+    );
+  }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, width: '100%' }}>
+    <button
+      type="button"
+      onClick={() => setVisible(false)}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 8,
+        width: '100%',
+        border: 'none',
+        background: 'transparent',
+        padding: 0,
+        cursor: 'pointer',
+      }}
+    >
       <svg width={size} height={size} style={{ borderRadius: 12, background: 'rgba(14,16,24,0.6)' }}>
         {Array.from({ length: gridSize * gridSize }, (_, i) => {
           const col = i % gridSize;
@@ -174,8 +216,8 @@ const SignatureGrid: React.FC<{ signature: InkSignature; size?: number }> = ({
           ];
         })()}
       </svg>
-      <span style={{ color: 'var(--c-text-muted)', fontSize: 10 }}>量化路径图</span>
-    </div>
+      <span style={{ color: 'var(--c-text-muted)', fontSize: 10 }}>点击隐藏量化路径图</span>
+    </button>
   );
 };
 
@@ -318,6 +360,21 @@ const ProfilePage: React.FC = () => {
   });
   const myTasks = myTasksData?.pages.flatMap(p => p.items) ?? [];
 
+  const handleDeleteTask = useCallback(async (taskId: string) => {
+    try {
+      const result = await taskApi.deleteMyTask(taskId);
+      message.success(result.detail || '任务已删除');
+      queryClient.invalidateQueries({ queryKey: ['myTasks'] });
+      queryClient.invalidateQueries({ queryKey: ['taskStats'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['likeRankingTasks'] });
+      queryClient.invalidateQueries({ queryKey: ['viewRankingTasks'] });
+    } catch (error) {
+      const err = error as { response?: { data?: { detail?: string } } };
+      message.error(err.response?.data?.detail || '删除失败，请稍后重试');
+    }
+  }, [queryClient]);
+
   const handleScrollLoad = useCallback((e: React.UIEvent<HTMLDivElement>, fetchNext: () => void, hasMore: boolean | undefined) => {
     const el = e.currentTarget;
     if (!hasMore) return;
@@ -352,7 +409,7 @@ const ProfilePage: React.FC = () => {
   }
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 16px' }}>
+    <div className="web-page-shell profile-page" style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 16px' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
         <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => navigate('/')}
@@ -360,10 +417,10 @@ const ProfilePage: React.FC = () => {
         <h2 style={gradientHeading}>个人中心</h2>
       </div>
 
-      <Row gutter={[24, 24]}>
+      <Row className="profile-page__main-row" gutter={[24, 24]}>
         {/* ── Left column ── */}
         <Col xs={24} lg={16}>
-          <Card style={glassCard} styles={{ body: { padding: 24 } }}>
+          <Card className="profile-page__user-card" style={glassCard} styles={{ body: { padding: 24 } }}>
             {/* User info */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
               <div style={{
@@ -439,7 +496,7 @@ const ProfilePage: React.FC = () => {
                 <div style={{ color: 'var(--c-text-muted)', fontSize: 11, letterSpacing: '0.5px', marginBottom: 10 }}>
                   签名图案
                 </div>
-                <div style={{ display: 'flex', gap: 16, width: '100%' }}>
+                <div className="profile-page__signature-grid" style={{ display: 'flex', gap: 16, width: '100%' }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <SignatureStroke signature={signature} size={180} />
                   </div>
@@ -463,12 +520,13 @@ const ProfilePage: React.FC = () => {
           </Card>
 
           {/* My tasks list */}
-          <Card style={{ ...glassCard, marginTop: 16 }} styles={{ body: { padding: 24 } }}>
+          <Card className="profile-page__tasks-card" style={{ ...glassCard, marginTop: 16 }} styles={{ body: { padding: 24 } }}>
             <div style={{ color: 'var(--c-text-muted)', fontSize: 11, letterSpacing: '0.5px', marginBottom: 12 }}>
               我创建的任务
             </div>
             {myTasks.length > 0 ? (
               <div
+                className="profile-page__table-scroll"
                 style={{ maxHeight: 340, overflowY: 'auto' }}
                 onScroll={(e) => handleScrollLoad(e, fetchNextTaskPage, hasMoreTasks)}
               >
@@ -482,7 +540,7 @@ const ProfilePage: React.FC = () => {
                     title: '用户输入', dataIndex: 'user_input', key: 'user_input',
                     ellipsis: true,
                     render: (text: string) => (
-                      <span style={{ color: 'var(--c-text)', fontSize: 12, maxWidth: 220, display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <span title={text} style={{ color: 'var(--c-text)', fontSize: 12, width: '100%', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {text}
                       </span>
                     ),
@@ -512,14 +570,33 @@ const ProfilePage: React.FC = () => {
                     ),
                   },
                   {
-                    title: '', key: 'action', width: 70,
+                    title: '', key: 'action', width: 94,
                     render: (_: unknown, record: MyTaskListItem) => (
-                      <Button type="link" size="small"
-                        style={{ color: 'var(--c-accent)', padding: 0, fontSize: 12 }}
-                        onClick={() => navigate(`/tasks/${record.task_id}`)}
-                      >
-                        查看
-                      </Button>
+                      <Space size={6}>
+                        <Button type="link" size="small"
+                          style={{ color: 'var(--c-accent)', padding: 0, fontSize: 12 }}
+                          onClick={() => navigate(`/tasks/${record.task_id}`)}
+                        >
+                          查看
+                        </Button>
+                        <Popconfirm
+                          title="删除任务"
+                          okText="删除"
+                          cancelText="取消"
+                          okButtonProps={{ danger: true }}
+                          onConfirm={() => handleDeleteTask(record.task_id)}
+                        >
+                          <Button
+                            type="text"
+                            danger
+                            size="small"
+                            icon={<DeleteOutlined />}
+                            aria-label="删除任务"
+                            title="删除任务"
+                            style={{ padding: 0, width: 22, height: 22 }}
+                          />
+                        </Popconfirm>
+                      </Space>
                     ),
                   },
                 ]}
@@ -542,7 +619,7 @@ const ProfilePage: React.FC = () => {
         <Col xs={24} lg={8}>
           {/* Check-in calendar */}
           {checkInData && (
-            <Card style={glassCard} styles={{ body: { padding: 24 } }}>
+            <Card className="profile-page__checkin-card" style={glassCard} styles={{ body: { padding: 24 } }}>
               <CheckInCalendar
                 checkedDates={checkInData.checked_dates}
                 todayChecked={checkInData.today_checked}
@@ -555,12 +632,13 @@ const ProfilePage: React.FC = () => {
           )}
 
           {/* Credit history */}
-          <Card style={{ ...glassCard, marginTop: 16 }} styles={{ body: { padding: 24 } }}>
+          <Card className="profile-page__credits-card" style={{ ...glassCard, marginTop: 16 }} styles={{ body: { padding: 24 } }}>
             <div style={{ color: 'var(--c-text-muted)', fontSize: 11, letterSpacing: '0.5px', marginBottom: 12 }}>
               积分使用记录
             </div>
             {creditHistory.length > 0 ? (
               <div
+                className="profile-page__table-scroll"
                 style={{ maxHeight: 440, overflowY: 'auto' }}
                 onScroll={(e) => handleScrollLoad(e, fetchNextCreditPage, hasMoreCredits)}
               >

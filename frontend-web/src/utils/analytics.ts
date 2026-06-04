@@ -22,7 +22,7 @@ const normalizePagePath = (path: string) => {
 
 export const initBaiduTongji = () => {
   const baiduTongjiId = getBaiduTongjiId();
-  if (!canUseDOM() || !baiduTongjiId || initialized) {
+  if (!canUseDOM() || !baiduTongjiId || initialized || import.meta.env.DEV) {
     return;
   }
 
@@ -51,7 +51,7 @@ export const initBaiduTongji = () => {
 };
 
 export const trackBaiduTongjiPageView = (path: string) => {
-  if (!canUseDOM() || !getBaiduTongjiId()) {
+  if (!canUseDOM() || !getBaiduTongjiId() || import.meta.env.DEV) {
     return;
   }
 

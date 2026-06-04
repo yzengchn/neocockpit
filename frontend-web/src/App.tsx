@@ -1,13 +1,20 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ConfigProvider, theme } from 'antd';
+import { ConfigProvider, Spin, theme } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { HomePage } from './pages/HomePage';
-import { TaskDetailPage } from './pages/TaskDetailPage';
-import ProfilePage from './pages/ProfilePage';
 import { initBaiduTongji, trackBaiduTongjiPageView } from '@/utils/analytics';
 import '@/styles/global.css';
+
+const TaskDetailPage = React.lazy(() => import('./pages/TaskDetailPage').then((module) => ({ default: module.TaskDetailPage })));
+const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
+
+const RouteFallback: React.FC = () => (
+  <div className="route-fallback">
+    <Spin size="large" />
+  </div>
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -109,11 +116,13 @@ const App: React.FC = () => {
             }} />
 
             <div style={{ position: 'relative', zIndex: 1 }}>
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/tasks/:taskId" element={<TaskDetailPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-              </Routes>
+              <React.Suspense fallback={<RouteFallback />}>
+                <Routes>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/tasks/:taskId" element={<TaskDetailPage />} />
+                  <Route path="/profile" element={<ProfilePage />} />
+                </Routes>
+              </React.Suspense>
             </div>
           </div>
         </BrowserRouter>

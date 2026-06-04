@@ -9,7 +9,6 @@ import { LikeSection } from '@/components/TaskDetail/LikeSection';
 import { CommentSection } from '@/components/TaskDetail/CommentSection';
 import { BuildTreeViewer } from '@/components/BuildTree';
 import { ImagePreview } from '@/components/ImagePreview';
-import { Portrait3DViewer } from '@/components/Portrait3DViewer';
 import AuthModal from '@/components/AuthModal';
 import { taskApi, userApi, setUserAuth } from '@/services/api';
 import { useIdleDetector } from '@/hooks/useIdleDetector';
@@ -20,6 +19,8 @@ import { statusConfig } from '@/constants/status';
 import { glassCardOverflow } from '@/constants/styles';
 
 const { Text, Paragraph } = Typography;
+
+const Portrait3DViewer = React.lazy(() => import('@/components/Portrait3DViewer'));
 
 type BuildImage = { name: string; path: string };
 type BuildTreeRecord = Record<string, unknown>;
@@ -243,7 +244,7 @@ export const TaskDetailPage: React.FC = () => {
   } as const;
 
   return (
-    <div style={{ padding: '0 24px 40px', maxWidth: 1200, margin: '0 auto' }}>
+    <div className="web-page-shell task-detail-page" style={{ padding: '0 24px 40px', maxWidth: 1200, margin: '0 auto' }}>
       {/* ── Back button ── */}
       <Button
         type="text"
@@ -254,11 +255,11 @@ export const TaskDetailPage: React.FC = () => {
         返回首页
       </Button>
 
-      <Row gutter={[24, 24]}>
+      <Row className="task-detail-page__main-row" gutter={[24, 24]}>
         {/* ── Left column: status + logs ── */}
-        <Col xs={24} md={8}>
+        <Col xs={24} md={8} className="task-detail-page__side-col">
           {/* Status card */}
-          <Card style={{ ...glassCardOverflow, marginBottom: 24 }} styles={{ body: { padding: 24 } }}>
+          <Card className="task-detail-page__status-card" style={{ ...glassCardOverflow, marginBottom: 24 }} styles={{ body: { padding: 24 } }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
               <Text title={task.task_id} style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--c-text-muted)', wordBreak: 'break-all' }}>
                 {task.task_id}
@@ -326,6 +327,7 @@ export const TaskDetailPage: React.FC = () => {
 
           {/* Execution log card */}
           <Card
+            className="task-detail-page__log-card"
             title={<span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--c-text-secondary)' }}>执行日志</span>}
             style={glassCardOverflow}
             styles={{
@@ -338,20 +340,29 @@ export const TaskDetailPage: React.FC = () => {
         </Col>
 
         {/* ── Right column: preview + prompts + images ── */}
-        <Col xs={24} md={16}>
+        <Col xs={24} md={16} className="task-detail-page__content-col">
           {/* Digital Human 3D Preview */}
           {dh && isLoggedIn && task.avatar_atlas_url && portraitMeshUrl && (
             <Card style={{ ...glassCardOverflow, marginBottom: 24 }} styles={{ body: { padding: 0 } }}>
-              <Portrait3DViewer
-                atlasUrl={task.avatar_atlas_url || ''}
-                meshUrl={portraitMeshUrl}
-              />
+              <React.Suspense
+                fallback={(
+                  <div className="portrait-3d portrait-3d--loading">
+                    <Spin size="large" />
+                  </div>
+                )}
+              >
+                <Portrait3DViewer
+                  atlasUrl={task.avatar_atlas_url || ''}
+                  meshUrl={portraitMeshUrl}
+                />
+              </React.Suspense>
             </Card>
           )}
 
           {/* Design prompts card */}
           {(task.user_input || task.background_prompt || task.icon_prompt || (dh && task.normal_detail) || diy) && (
             <Card
+              className="task-detail-page__prompt-card"
               title={
                 <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--c-text-secondary)', display: 'flex', alignItems: 'center', gap: 8 }}>
                   {task.author && (
@@ -560,6 +571,7 @@ export const TaskDetailPage: React.FC = () => {
           {/* ── Generated images ── */}
           {(task.background_image_url || task.icon_image_url || task.avatar_image_url || task.texture_albedo_url || task.texture_normal_url || task.view_image_urls) && (
             <Card
+              className="task-detail-page__images-card"
               style={{
                 ...glassCardOverflow,
                 marginBottom: 24,
@@ -581,7 +593,7 @@ export const TaskDetailPage: React.FC = () => {
                   </Tag>
                 )}
               </h3>
-              <Row gutter={24}>
+              <Row className="task-detail-page__images-grid" gutter={24}>
                 {dh && (["front", "right", "back", "left"] as const).map((v) => {
                   const url = task.view_image_urls?.[v];
                   if (!url) return null;
@@ -604,6 +616,7 @@ export const TaskDetailPage: React.FC = () => {
       {/* ── Resource package (full width, independent) ── */}
       {fileTree && task?.status === TaskStatus.COMPLETED && (
         <Card
+          className="task-detail-page__resource-card"
           title={
             <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--c-text-secondary)' }}>
               资源包
@@ -651,9 +664,9 @@ export const TaskDetailPage: React.FC = () => {
             header: { borderBottom: '1px solid var(--c-border)' },
           }}
         >
-          <Row gutter={[2, 20]} style={{ alignItems: 'flex-start' }}>
+          <Row className="task-detail-page__resource-row" gutter={[2, 20]} style={{ alignItems: 'flex-start' }}>
             <Col xs={24} md={7}>
-              <div style={{ background: 'var(--c-bg-card)', borderRadius: 'var(--radius-md)', padding: 2, maxHeight: 520, overflowY: 'auto' }}>
+              <div className="task-detail-page__build-tree" style={{ background: 'var(--c-bg-card)', borderRadius: 'var(--radius-md)', padding: 2, maxHeight: 520, overflowY: 'auto' }}>
                 <BuildTreeViewer buildTree={fileTree} onSelect={handleSelectFile} />
               </div>
             </Col>
@@ -673,7 +686,7 @@ export const TaskDetailPage: React.FC = () => {
 
       {/* ── Like + comments (only for completed tasks) ── */}
       {task?.status === TaskStatus.COMPLETED && taskId && (
-        <div style={{
+        <div className="task-detail-page__social-row" style={{
           display: 'grid',
           gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)',
           alignItems: 'start',
