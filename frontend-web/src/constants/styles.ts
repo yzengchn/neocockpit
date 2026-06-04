@@ -2,9 +2,7 @@ import React from 'react';
 
 /** Glass card base style (shared across all pages). */
 export const glassCard: React.CSSProperties = {
-  background: 'var(--c-bg-card)',
-  backdropFilter: 'blur(20px) saturate(1.3)',
-  WebkitBackdropFilter: 'blur(20px) saturate(1.3)',
+  background: 'var(--c-bg-card-solid)',
   borderRadius: 'var(--radius-lg)',
   border: '1px solid var(--c-border)',
   boxShadow: 'var(--shadow-card)',

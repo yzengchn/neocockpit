@@ -27,21 +27,21 @@
   --c-glow-strong: rgba(99, 102, 241, 0.38);
 
   /* ── Radii ── */
-  --radius-xs: 6px;
-  --radius-sm: 10px;
-  --radius-md: 16px;
-  --radius-lg: 22px;
-  --radius-xl: 28px;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
 
   /* ── Shadows ── */
-  --shadow-card: 0 2px 16px rgba(0, 0, 0, 0.45), 0 0 1px rgba(99, 102, 241, 0.08);
-  --shadow-card-hover: 0 8px 32px rgba(99, 102, 241, 0.14), 0 0 1px rgba(99, 102, 241, 0.2);
-  --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.15);
-  --shadow-glow-accent: 0 0 20px rgba(6, 182, 212, 0.12);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 0 12px rgba(99, 102, 241, 0.1);
+  --shadow-glow-accent: 0 0 12px rgba(6, 182, 212, 0.1);
 
   /* ── Fonts ── */
   --font-sans: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-mono: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 
   /* ── Transitions ── */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -61,7 +61,12 @@ body {
 
 code { font-family: var(--font-mono); }
 
-#root { min-height: 100vh; position: relative; }
+#root {
+  min-height: 100vh;
+  position: relative;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
 
 /* ── Scrollbar ──────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -87,8 +92,8 @@ code { font-family: var(--font-mono); }
   50%      { border-color: var(--c-border-active); }
 }
 @keyframes shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0%   { transform: translateX(-200%); }
+  100% { transform: translateX(200%); }
 }
 @keyframes pulseGlow {
   0%, 100% { box-shadow: 0 0 12px var(--c-glow); }
@@ -114,17 +119,13 @@ code { font-family: var(--font-mono); }
 
 /* ── Glass card utility ────────────────────────── */
 .glass-card {
-  background: var(--c-bg-card);
-  backdrop-filter: blur(20px) saturate(1.3);
-  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+  background: var(--c-bg-card-solid);
   border: 1px solid var(--c-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
-  transition: border-color 0.35s var(--ease-out), box-shadow 0.35s var(--ease-out);
 }
 .glass-card:hover {
   border-color: var(--c-border-active);
-  box-shadow: var(--shadow-card-hover);
 }
 
 /* ── Gradient text utility ─────────────────────── */
@@ -142,19 +143,17 @@ code { font-family: var(--font-mono); }
   background: linear-gradient(135deg, var(--c-primary), var(--c-accent));
   border: none;
   font-weight: 700;
-  transition: box-shadow 0.3s var(--ease-out), transform 0.2s var(--ease-out);
 }
 .neon-btn:hover {
-  box-shadow: 0 0 24px var(--c-glow), 0 0 48px var(--c-glow-accent);
-  transform: translateY(-1px);
+  opacity: 0.9;
 }
 .neon-btn::after {
   content: '';
   position: absolute;
   inset: 0;
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
-  background-size: 200% 100%;
-  animation: shimmer 3s ease-in-out infinite;
+  pointer-events: none;
+  opacity: 0;
 }
 
 /* ── Tag / badge neon style ────────────────────── */
@@ -170,20 +169,20 @@ code { font-family: var(--font-mono); }
 
 /* ── Ant Design Overrides (dark tech) ──────────── */
 .ant-card {
-  transition: box-shadow 0.3s var(--ease-out), border-color 0.3s var(--ease-out) !important;
+  transition: none !important;
 }
 
 .ant-btn-primary {
-  transition: box-shadow 0.3s var(--ease-out) !important;
+  transition: none !important;
 }
 .ant-btn-primary:hover {
-  box-shadow: 0 6px 20px var(--c-glow) !important;
+  opacity: 0.9;
 }
 
 .ant-input,
 .ant-input-textarea textarea,
 .ant-select-selector {
-  transition: border-color 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out) !important;
+  transition: border-color 0.2s ease !important;
   background: var(--c-bg-input) !important;
   border: 1px solid var(--c-border) !important;
   border-radius: var(--radius-sm) !important;
@@ -193,7 +192,7 @@ code { font-family: var(--font-mono); }
 .ant-input-textarea textarea:focus,
 .ant-select-focused .ant-select-selector {
   border-color: var(--c-primary-light) !important;
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1), 0 0 16px rgba(99, 102, 241, 0.08) !important;
+  box-shadow: none !important;
 }
 
 /* Radio / checkbox styling */
@@ -225,7 +224,7 @@ code { font-family: var(--font-mono); }
 
 /* Tabs dark override */
 .ant-tabs-tab {
-  transition: color 0.25s var(--ease-out) !important;
+  transition: none !important;
 }
 .ant-tabs-tab-active .ant-tabs-tab-btn {
   color: var(--c-primary-light) !important;
@@ -256,29 +255,19 @@ code { font-family: var(--font-mono); }
 
 /* Progress bar glow */
 .ant-progress-bg {
-  box-shadow: 0 0 12px var(--c-glow) !important;
+  box-shadow: none !important;
 }
 .task-progress--active .ant-progress-inner {
-  background:
-    linear-gradient(90deg, rgba(255,255,255,0.04), transparent 28%, rgba(255,255,255,0.035) 72%, transparent),
-    rgba(255,255,255,0.045) !important;
-  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.24);
+  background: rgba(255,255,255,0.045) !important;
 }
 .task-progress--active .ant-progress-bg {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(90deg, var(--task-progress-color, var(--c-primary)), color-mix(in srgb, var(--task-progress-color, var(--c-primary)) 72%, #ffffff)) !important;
-  box-shadow: 0 0 12px color-mix(in srgb, var(--task-progress-color, var(--c-primary)) 44%, transparent) !important;
-  animation: progressPulse 1.8s ease-in-out infinite;
+  background: var(--task-progress-color, var(--c-primary)) !important;
+  box-shadow: none !important;
 }
 .task-progress--active .ant-progress-bg::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  width: 62%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.52), transparent);
-  transform: translateX(-110%);
-  animation: progressFlow 1.35s var(--ease-out) infinite;
+  display: none;
 }
 
 /* Tag dark */
@@ -354,19 +343,17 @@ h1, h2, h3, h4, h5, h6,
   border-radius: var(--radius-md);
   background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 6%, transparent), color-mix(in srgb, var(--accent) 2%, transparent));
   border: 1px solid color-mix(in srgb, var(--accent) 12%, transparent);
-  transition: border-color 0.35s var(--ease-out), box-shadow 0.35s var(--ease-out);
   cursor: default;
   position: relative;
   overflow: hidden;
 }
 .stat-chip:hover {
-  border-color: color-mix(in srgb, var(--accent) 32%, transparent);
-  box-shadow: 0 0 20px color-mix(in srgb, var(--accent) 9%, transparent), inset 0 0 20px color-mix(in srgb, var(--accent) 2%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 18%, transparent);
 }
 .stat-chip__glow {
   position: absolute;
   top: 0; left: 20%; right: 20%; height: 1px;
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 38%, transparent), transparent);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 20%, transparent), transparent);
 }
 .stat-chip__body {
   display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
@@ -374,7 +361,6 @@ h1, h2, h3, h4, h5, h6,
 .stat-chip__icon {
   font-size: 18px;
   color: var(--accent);
-  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 32%, transparent));
 }
 .stat-chip__value {
   font-size: 28px; font-weight: 800; color: var(--c-text);
@@ -393,12 +379,11 @@ h1, h2, h3, h4, h5, h6,
 
 /* ── Segmented item styling ── */
 .ant-segmented-item {
-  transition: all 0.25s var(--ease-out) !important;
+  transition: none !important;
 }
 .ant-segmented-item-label {
   border-radius: var(--radius-sm) !important;
   border: 1px solid transparent !important;
-  transition: all 0.25s var(--ease-out) !important;
 }
 /* Hover state */
 .ant-segmented-item:hover:not(.ant-segmented-item-selected) .ant-segmented-item-label {
@@ -410,5 +395,4 @@ h1, h2, h3, h4, h5, h6,
   border: 2px solid var(--c-accent) !important;
   color: #fff !important;
   font-weight: 700 !important;
-  text-shadow: 0 0 8px rgba(6, 182, 212, 0.35) !important;
 }

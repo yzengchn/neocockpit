@@ -102,11 +102,9 @@ export const TaskList: React.FC<TaskListProps> = ({
               background: activeFilter === 'all' ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.06)',
               border: activeFilter === 'all' ? '1px solid rgba(99,102,241,0.5)' : '1px solid var(--c-border)',
               borderRight: 'none',
-              boxShadow: activeFilter === 'all' ? '0 0 18px rgba(99,102,241,0.15)' : 'none',
               cursor: 'pointer',
               fontFamily: 'var(--font-mono)',
               letterSpacing: 0,
-              transition: 'border-color 0.25s var(--ease-out), background 0.25s var(--ease-out), color 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out)',
               whiteSpace: 'nowrap',
             }}
           >所有任务</button>
@@ -123,11 +121,9 @@ export const TaskList: React.FC<TaskListProps> = ({
               background: activeFilter === 'likeRanking' ? 'rgba(239,68,68,0.15)' : 'rgba(99,102,241,0.06)',
               border: activeFilter === 'likeRanking' ? '1px solid rgba(239,68,68,0.5)' : '1px solid var(--c-border)',
               borderRight: 'none',
-              boxShadow: activeFilter === 'likeRanking' ? '0 0 18px rgba(239,68,68,0.15)' : 'none',
               cursor: 'pointer',
               fontFamily: 'var(--font-mono)',
               letterSpacing: 0,
-              transition: 'border-color 0.25s var(--ease-out), background 0.25s var(--ease-out), color 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out)',
               whiteSpace: 'nowrap',
             }}
           >
@@ -135,9 +131,6 @@ export const TaskList: React.FC<TaskListProps> = ({
               style={{
                 marginRight: 6,
                 color: '#ef4444',
-                filter: activeFilter === 'likeRanking'
-                  ? 'drop-shadow(0 0 7px rgba(239,68,68,0.75))'
-                  : 'drop-shadow(0 0 4px rgba(239,68,68,0.45))',
               }}
             />
             Top100
@@ -154,11 +147,9 @@ export const TaskList: React.FC<TaskListProps> = ({
               borderRadius: '0 var(--radius-sm) var(--radius-sm) 0',
               background: activeFilter === 'viewRanking' ? 'rgba(6,182,212,0.15)' : 'rgba(99,102,241,0.06)',
               border: activeFilter === 'viewRanking' ? '1px solid rgba(6,182,212,0.5)' : '1px solid var(--c-border)',
-              boxShadow: activeFilter === 'viewRanking' ? '0 0 18px rgba(6,182,212,0.15)' : 'none',
               cursor: 'pointer',
               fontFamily: 'var(--font-mono)',
               letterSpacing: 0,
-              transition: 'border-color 0.25s var(--ease-out), background 0.25s var(--ease-out), color 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out)',
               whiteSpace: 'nowrap',
             }}
           >
@@ -166,9 +157,6 @@ export const TaskList: React.FC<TaskListProps> = ({
               style={{
                 marginRight: 6,
                 color: '#f97316',
-                filter: activeFilter === 'viewRanking'
-                  ? 'drop-shadow(0 0 7px rgba(249,115,22,0.75))'
-                  : 'drop-shadow(0 0 4px rgba(249,115,22,0.45))',
               }}
             />
             Hot100
@@ -191,11 +179,9 @@ export const TaskList: React.FC<TaskListProps> = ({
                   borderRadius: 'var(--radius-sm)',
                   background: active ? `${option.accent}22` : 'rgba(99,102,241,0.06)',
                   border: active ? `1px solid ${option.accent}88` : '1px solid var(--c-border)',
-                  boxShadow: active ? `0 0 18px ${option.accent}24` : 'none',
                   cursor: 'pointer',
                   fontFamily: 'var(--font-mono)',
                   letterSpacing: 0,
-                  transition: 'border-color 0.25s var(--ease-out), background 0.25s var(--ease-out), color 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out)',
                   whiteSpace: 'nowrap',
                 }}
                 aria-pressed={active}

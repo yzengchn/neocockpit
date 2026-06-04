@@ -426,7 +426,7 @@ export const HomePage: React.FC = () => {
         {/* ── Create task ── */}
         <Col xs={24} lg={18}>
           <Card
-            style={{ ...glassCard, animation: 'fadeInUp 0.4s var(--ease-out) both', height: '100%' }}
+            style={{ ...glassCard, height: '100%' }}
             styles={{ body: { padding: 28, display: 'flex', flexDirection: 'column', minHeight: 320, height: '100%' } }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -640,7 +640,7 @@ export const HomePage: React.FC = () => {
         {/* Stats */}
         <Col xs={24} lg={6}>
           <Card
-            style={{ ...glassCard, animation: 'scaleIn 0.5s var(--ease-out) 0.12s both', height: '100%' }}
+            style={{ ...glassCard, height: '100%' }}
             styles={{ body: { padding: 22 } }}
           >
             <h3 style={statHeading}>任务统计</h3>
@@ -658,7 +658,7 @@ export const HomePage: React.FC = () => {
 
       {/* Task list */}
       <Card
-        style={{ ...glassCard, animation: 'scaleIn 0.5s var(--ease-out) 0.25s both', marginTop: 24 }}
+        style={{ ...glassCard, marginTop: 24 }}
         styles={{ body: { padding: 28 } }}
       >
         <TaskList

@@ -50,11 +50,9 @@ export const TaskCard = React.memo<TaskCardProps>(({ task, showLikes = false }) 
         borderRadius: 'var(--radius-lg)',
         overflow: 'hidden',
         border: hover ? '1px solid var(--c-border-active)' : '1px solid var(--c-border)',
-        boxShadow: hover ? 'var(--shadow-card-hover)' : 'var(--shadow-card)',
-        transition: 'border-color 0.35s var(--ease-out), box-shadow 0.35s var(--ease-out), transform 0.35s var(--ease-out)',
+        boxShadow: 'var(--shadow-card)',
         cursor: 'pointer',
         background: 'var(--c-bg-card-solid)',
-        transform: hover ? 'translateY(-6px)' : 'translateY(0)',
       }}
       styles={{ body: { padding: 0 } }}
       cover={
@@ -63,10 +61,10 @@ export const TaskCard = React.memo<TaskCardProps>(({ task, showLikes = false }) 
             <img
               alt="preview"
               src={coverImageUrl}
+              loading="lazy"
+              decoding="async"
               style={{
                 width: '100%', height: '100%', objectFit: 'cover',
-                transition: 'transform 0.5s var(--ease-out)',
-                transform: hover ? 'scale(1.08)' : 'scale(1)',
               }}
             />
           ) : (
@@ -110,11 +108,10 @@ export const TaskCard = React.memo<TaskCardProps>(({ task, showLikes = false }) 
           {isDigitalHuman && (
             <div style={{
               position: 'absolute', top: 10, left: 10,
-              background: 'rgba(167,139,250,0.12)', border: '1px solid rgba(167,139,250,0.3)',
+              background: 'rgba(167,139,250,0.2)', border: '1px solid rgba(167,139,250,0.4)',
               color: '#a78bfa', padding: '4px 12px', borderRadius: 'var(--radius-sm)',
               fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5,
               letterSpacing: '0.3px',
-              backdropFilter: 'blur(8px)',
             }}>
               <UserOutlined /> 数字人
             </div>
@@ -122,11 +119,10 @@ export const TaskCard = React.memo<TaskCardProps>(({ task, showLikes = false }) 
           {isDIY && (
             <div style={{
               position: 'absolute', top: 10, left: 10,
-              background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)',
+              background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.4)',
               color: '#f59e0b', padding: '4px 12px', borderRadius: 'var(--radius-sm)',
               fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5,
               letterSpacing: '0.3px',
-              backdropFilter: 'blur(8px)',
             }}>
               <BulbOutlined /> DIY生图
             </div>
@@ -134,11 +130,10 @@ export const TaskCard = React.memo<TaskCardProps>(({ task, showLikes = false }) 
           {isWallpaper && (
             <div style={{
               position: 'absolute', top: 10, left: 10,
-              background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.3)',
+              background: 'rgba(52,211,153,0.2)', border: '1px solid rgba(52,211,153,0.4)',
               color: '#34d399', padding: '4px 12px', borderRadius: 'var(--radius-sm)',
               fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5,
               letterSpacing: '0.3px',
-              backdropFilter: 'blur(8px)',
             }}>
               <PictureOutlined /> 壁纸
             </div>
@@ -147,12 +142,11 @@ export const TaskCard = React.memo<TaskCardProps>(({ task, showLikes = false }) 
           {/* status badge */}
           <div style={{
             position: 'absolute', top: 10, right: 10,
-            background: `${cfg.color}18`, border: `1px solid ${cfg.color}35`,
+            background: `${cfg.color}20`, border: `1px solid ${cfg.color}40`,
             color: cfg.color, padding: '4px 14px', borderRadius: 'var(--radius-sm)',
             fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6,
             letterSpacing: '0.3px',
             boxShadow: `0 0 12px ${cfg.color}15`,
-            backdropFilter: 'blur(8px)',
           }}>
             {React.cloneElement(cfg.icon as React.ReactElement, { style: { fontSize: 12 } })}
             {' '}{cfg.text}

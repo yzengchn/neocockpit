@@ -162,10 +162,6 @@ export const TaskDetailPage: React.FC = () => {
 
   React.useEffect(() => {
     if (!task?.task_id) return;
-    const viewKey = `aigc_task_viewed_${task.task_id}`;
-    if (sessionStorage.getItem(viewKey)) return;
-
-    sessionStorage.setItem(viewKey, '1');
     recordViewMutation.mutate(task.task_id);
   }, [task?.task_id]);
 
@@ -291,15 +287,19 @@ export const TaskDetailPage: React.FC = () => {
                 } as React.CSSProperties}
               />
             )}
-            {task.ai_provider && (
-              <Tag style={{
-                background: 'linear-gradient(135deg, var(--c-primary) 0%, var(--c-accent) 100%)',
-                color: '#fff', border: 'none', borderRadius: 'var(--radius-xs)',
-                fontWeight: 700, fontSize: 11,
-              }}>
-                {task.ai_provider.toUpperCase()}
-              </Tag>
-            )}
+            <Tag style={{
+              background: dh
+                ? 'linear-gradient(135deg, #a78bfa 0%, #6366f1 100%)'
+                : wallpaper
+                ? 'linear-gradient(135deg, #34d399 0%, #06b6d4 100%)'
+                : diy
+                ? 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)'
+                : 'linear-gradient(135deg, var(--c-primary) 0%, var(--c-accent) 100%)',
+              color: '#fff', border: 'none', borderRadius: 'var(--radius-xs)',
+              fontWeight: 700, fontSize: 11,
+            }}>
+              {dh ? '数字人' : wallpaper ? '壁纸' : diy ? 'DIY生图' : '主题'}
+            </Tag>
 
             {task.status === TaskStatus.FAILED && (
               <Button
