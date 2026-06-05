@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, Tag, Typography, Space } from 'antd';
-import { UserOutlined, BulbOutlined, HeartFilled, PictureOutlined, EyeOutlined } from '@ant-design/icons';
+import { UserOutlined, BulbOutlined, HeartFilled, PictureOutlined, EyeOutlined, AppstoreOutlined } from '@ant-design/icons';
 import { TaskListItem, TaskType } from '@/types/task';
 import { toResourceUrl } from '@/utils/url';
 import { statusConfig } from '@/constants/status';
@@ -25,6 +25,7 @@ export const TaskCard = React.memo<TaskCardProps>(({ task, showLikes = false }) 
   const isDigitalHuman = task.task_type === TaskType.DIGITAL_HUMAN;
   const isDIY = task.task_type === TaskType.DIY;
   const isWallpaper = task.task_type === TaskType.WALLPAPER;
+  const isTheme = task.task_type === TaskType.THEME;
   const coverImageUrl = toResourceUrl(
     isDigitalHuman ? (task.avatar_image_url || '') : (task.background_image_url || task.preview_image_url || ''),
   );
@@ -81,6 +82,11 @@ export const TaskCard = React.memo<TaskCardProps>(({ task, showLikes = false }) 
                   fontSize: 36, color: '#34d399', opacity: 0.6,
                   filter: `drop-shadow(0 0 12px ${cfg.color}50)`,
                 }} />
+              ) : isTheme ? (
+                <AppstoreOutlined style={{
+                  fontSize: 36, color: '#06b6d4', opacity: 0.6,
+                  filter: `drop-shadow(0 0 12px ${cfg.color}50)`,
+                }} />
               ) : isDIY ? (
                 <BulbOutlined style={{
                   fontSize: 36, color: '#f59e0b', opacity: 0.6,
@@ -91,53 +97,6 @@ export const TaskCard = React.memo<TaskCardProps>(({ task, showLikes = false }) 
                   style: { fontSize: 36, color: cfg.color, opacity: 0.6, filter: `drop-shadow(0 0 12px ${cfg.color}50)` },
                 })
               )}
-            </div>
-          )}
-
-          <div style={{
-            position: 'absolute', inset: 0,
-            background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px)',
-            pointerEvents: 'none',
-          }} />
-
-          <div style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%',
-            background: 'linear-gradient(to top, rgba(8,9,13,0.85) 0%, transparent 100%)',
-            pointerEvents: 'none',
-          }} />
-
-          {/* task type badge */}
-          {isDigitalHuman && (
-            <div style={{
-              position: 'absolute', top: 10, left: 10,
-              background: 'rgba(167,139,250,0.2)', border: '1px solid rgba(167,139,250,0.4)',
-              color: '#a78bfa', padding: '4px 12px', borderRadius: 'var(--radius-sm)',
-              fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5,
-              letterSpacing: '0.3px',
-            }}>
-              <UserOutlined /> 数字人
-            </div>
-          )}
-          {isDIY && (
-            <div style={{
-              position: 'absolute', top: 10, left: 10,
-              background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.4)',
-              color: '#f59e0b', padding: '4px 12px', borderRadius: 'var(--radius-sm)',
-              fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5,
-              letterSpacing: '0.3px',
-            }}>
-              <BulbOutlined /> DIY生图
-            </div>
-          )}
-          {isWallpaper && (
-            <div style={{
-              position: 'absolute', top: 10, left: 10,
-              background: 'rgba(52,211,153,0.2)', border: '1px solid rgba(52,211,153,0.4)',
-              color: '#34d399', padding: '4px 12px', borderRadius: 'var(--radius-sm)',
-              fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5,
-              letterSpacing: '0.3px',
-            }}>
-              <PictureOutlined /> 壁纸
             </div>
           )}
 
@@ -168,17 +127,54 @@ export const TaskCard = React.memo<TaskCardProps>(({ task, showLikes = false }) 
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             paddingTop: 10, borderTop: '1px solid var(--c-border)',
           }}>
-            <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+              {isDigitalHuman && (
+                <Tag className="neon-tag" style={{
+                  background: 'linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%)',
+                  color: '#fff',
+                  margin: 0,
+                }}>
+                  <UserOutlined style={{ fontSize: 10 }} /> 数字人
+                </Tag>
+              )}
+              {isTheme && (
+                <Tag className="neon-tag" style={{
+                  background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+                  color: '#fff',
+                  margin: 0,
+                }}>
+                  <AppstoreOutlined style={{ fontSize: 10 }} /> 主题
+                </Tag>
+              )}
+              {isDIY && (
+                <Tag className="neon-tag" style={{
+                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                  color: '#fff',
+                  margin: 0,
+                }}>
+                  <BulbOutlined style={{ fontSize: 10 }} /> DIY生图
+                </Tag>
+              )}
+              {isWallpaper && (
+                <Tag className="neon-tag" style={{
+                  background: 'linear-gradient(135deg, #34d399 0%, #10b981 100%)',
+                  color: '#fff',
+                  margin: 0,
+                }}>
+                  <PictureOutlined style={{ fontSize: 10 }} /> 壁纸
+                </Tag>
+              )}
               {task.ai_provider && (
                 <Tag className="neon-tag" style={{
-                  background: isDigitalHuman
-                    ? 'linear-gradient(135deg, #a78bfa 0%, #6366f1 100%)'
-                    : isWallpaper
-                    ? 'linear-gradient(135deg, #34d399 0%, #06b6d4 100%)'
-                    : isDIY
-                    ? 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)'
+                  background: task.ai_provider.toLowerCase() === 'openai'
+                    ? 'linear-gradient(135deg, #10a37f 0%, #0d8a6a 100%)'
+                    : task.ai_provider.toLowerCase() === 'doubao'
+                    ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)'
+                    : task.ai_provider.toLowerCase() === 'dashscope'
+                    ? 'linear-gradient(135deg, #ff6a00 0%, #ee5a00 100%)'
                     : 'linear-gradient(135deg, var(--c-primary) 0%, var(--c-accent) 100%)',
                   color: '#fff',
+                  margin: 0,
                 }}>
                   {task.ai_provider.toUpperCase()}
                 </Tag>
