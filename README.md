@@ -8,9 +8,10 @@
 [![Python](https://img.shields.io/badge/Python-3.11+-green.svg)](https://www.python.org/)
 [![React](https://img.shields.io/badge/React-18-61dafb.svg)](https://reactjs.org/)
 
+---
+
 输入一段文字，自动生成车载壁纸 / 车载主题 / 数字人形象 / DIY 生图的完整资源包。
 直达入口：[https://neocockpit.cn](https://neocockpit.cn)
----
 
 ## ✨ 核心功能
 
