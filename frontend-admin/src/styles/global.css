@@ -260,6 +260,40 @@ code { font-family: var(--font-mono); }
 .admin-table-actions .ant-switch {
   flex: 0 0 auto;
 }
+.task-admin-table .ant-table-thead > tr > th,
+.task-admin-table .ant-table-tbody > tr > td {
+  padding: 10px 8px !important;
+}
+.task-admin-table .ant-table-thead > tr > th {
+  font-size: 12px;
+}
+.task-admin-table .ant-table-tbody > tr > td {
+  height: 62px;
+  vertical-align: middle;
+}
+.task-admin-input-preview {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--c-text);
+  line-height: 1.45;
+  white-space: normal;
+  word-break: break-word;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.task-admin-table .ant-tag {
+  max-width: 100%;
+  margin-inline-end: 0;
+  padding-inline: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+.task-admin-table .ant-table-cell-fix-right,
+.task-admin-table .ant-table-cell-fix-right-first::after,
+.task-admin-table .ant-table-cell-fix-right-last::after {
+  background: var(--c-bg-card-solid) !important;
+}
 /* ── Admin shell: left nav + right tab pages ───── */
 .admin-page-frame {
   min-height: 100vh;
@@ -370,8 +404,16 @@ code { font-family: var(--font-mono); }
 .admin-sider.ant-layout-sider-collapsed .ant-layout-sider-children {
   padding-inline: 8px;
 }
+.admin-sider.ant-layout-sider-collapsed .ant-menu {
+  width: 100% !important;
+}
 .admin-sider.ant-layout-sider-collapsed .ant-menu-item {
-  padding-inline: 0 !important;
+  padding-inline: calc(50% - 8px) !important;
+  text-overflow: clip;
+}
+.admin-sider.ant-layout-sider-collapsed .ant-menu-item .anticon {
+  margin-inline-end: 0 !important;
+  line-height: 1;
 }
 .admin-sider.ant-layout-sider-collapsed .admin-brand {
   justify-content: center;

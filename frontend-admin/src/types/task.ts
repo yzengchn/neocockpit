@@ -93,6 +93,7 @@ export interface Task {
   likes: number;
   views: number;
   is_visible: boolean;
+  is_deleted: boolean;
   created_at: string;
   updated_at?: string;
 }

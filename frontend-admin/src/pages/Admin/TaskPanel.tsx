@@ -81,7 +81,7 @@ export const TaskPanel: React.FC = () => {
 
   const columns: ColumnsType<Task> = [
     {
-      title: 'ID', dataIndex: 'id', key: 'id', width: 64,
+      title: 'ID', dataIndex: 'id', key: 'id', width: 56,
       render: (id: number, record: Task) => (
         <span title={record.task_id} style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--c-text-secondary)' }}>
           {id}
@@ -89,41 +89,49 @@ export const TaskPanel: React.FC = () => {
       ),
     },
     {
-      title: '类型', dataIndex: 'task_type', key: 'task_type', width: 90,
+      title: '类型', dataIndex: 'task_type', key: 'task_type', width: 76,
       render: (type: string) => <TaskTypeTag type={type} />,
     },
     {
-      title: '作者', dataIndex: 'author', key: 'author', width: 100,
+      title: '作者', dataIndex: 'author', key: 'author', width: 88, ellipsis: true,
       render: (author: string | undefined) => author
-        ? <span style={{ fontWeight: 600 }}>{author}</span>
+        ? <span title={author} style={{ fontWeight: 600 }}>{author}</span>
         : <span style={{ color: 'var(--c-text-muted)' }}>-</span>,
     },
     {
-      title: '用户输入', dataIndex: 'user_input', key: 'user_input', ellipsis: true,
-      render: (text: string) => <span style={{ color: 'var(--c-text)' }}>{text}</span>,
-    },
-    {
-      title: 'AI供应商', dataIndex: 'ai_provider', key: 'ai_provider', width: 110,
-      render: (provider: string | undefined) => <ProviderTag provider={provider} />,
-    },
-    {
-      title: '状态', dataIndex: 'status', key: 'status', width: 110,
-      render: (status: TaskStatus) => <TaskStatusTag status={status} />,
-    },
-    {
-      title: '展示', dataIndex: 'is_visible', key: 'is_visible', width: 100, align: 'center',
-      render: (isVisible: boolean | undefined, record: Task) => (
-        <Switch
-          checked={isVisible !== false}
-          checkedChildren="展示"
-          unCheckedChildren="隐藏"
-          loading={visibilityMutation.isPending && visibilityMutation.variables?.taskId === record.task_id}
-          onChange={(checked) => visibilityMutation.mutate({ taskId: record.task_id, isVisible: checked })}
-        />
+      title: '用户输入', dataIndex: 'user_input', key: 'user_input', width: 210,
+      render: (text: string) => (
+        <div className="task-admin-input-preview" title={text}>
+          {text}
+        </div>
       ),
     },
     {
-      title: '浏览量', dataIndex: 'views', key: 'views', width: 90, align: 'right',
+      title: '供应商', dataIndex: 'ai_provider', key: 'ai_provider', width: 84,
+      render: (provider: string | undefined) => <ProviderTag provider={provider} />,
+    },
+    {
+      title: '状态', dataIndex: 'status', key: 'status', width: 92,
+      render: (status: TaskStatus) => <TaskStatusTag status={status} />,
+    },
+    {
+      title: '展示', dataIndex: 'is_visible', key: 'is_visible', width: 92, align: 'center',
+      render: (isVisible: boolean | undefined, record: Task) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
+          <Switch
+            size="small"
+            checked={isVisible !== false}
+            loading={visibilityMutation.isPending && visibilityMutation.variables?.taskId === record.task_id}
+            onChange={(checked) => visibilityMutation.mutate({ taskId: record.task_id, isVisible: checked })}
+          />
+          <span style={{ fontSize: 11, lineHeight: 1.2, color: 'var(--c-text-secondary)' }}>
+            已删除: {record.is_deleted ? 'true' : 'false'}
+          </span>
+        </div>
+      ),
+    },
+    {
+      title: '浏览', dataIndex: 'views', key: 'views', width: 72, align: 'right',
       sorter: (a, b) => (a.views ?? 0) - (b.views ?? 0),
       render: (views: number | undefined) => (
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--c-text-secondary)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -133,24 +141,24 @@ export const TaskPanel: React.FC = () => {
       ),
     },
     {
-      title: '创建时间', dataIndex: 'created_at', key: 'created_at', width: 170,
+      title: '创建时间', dataIndex: 'created_at', key: 'created_at', width: 142,
       render: (date: string) => <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--c-text-secondary)' }}>{formatDateTime(date)}</span>,
     },
     {
-      title: '操作', key: 'action', width: 140, align: 'right',
+      title: '操作', key: 'action', width: 76, align: 'right', fixed: 'right',
       render: (_: unknown, record: Task) => (
         <div className="admin-table-actions">
-          <Button
-            type="link"
-            size="small"
-            icon={<EyeOutlined />}
-            href={getWebTaskDetailUrl(record.task_id)}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="在新标签打开任务详情"
-          >
-            查看
-          </Button>
+          <Tooltip title="在新标签打开任务详情">
+            <Button
+              type="text"
+              size="small"
+              icon={<EyeOutlined />}
+              href={getWebTaskDetailUrl(record.task_id)}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="查看"
+            />
+          </Tooltip>
           <Popconfirm title="确认删除" description="确定要删除这个任务吗？" onConfirm={() => handleDelete(record.task_id)} okText="确认" cancelText="取消" okButtonProps={{ danger: true }}>
             <Tooltip title="删除">
               <Button type="text" size="small" danger icon={<DeleteOutlined />} loading={deleteMutation.isPending} aria-label="删除" />
@@ -199,13 +207,15 @@ export const TaskPanel: React.FC = () => {
         />
       </div>
       <Table
-        className="admin-table"
+        className="admin-table task-admin-table"
         columns={columns}
         dataSource={filteredTasks}
         rowKey="id"
         loading={isLoading}
         pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
-        scroll={{ x: 1314 }}
+        size="small"
+        tableLayout="fixed"
+        scroll={{ x: 1008 }}
       />
     </>
   );
