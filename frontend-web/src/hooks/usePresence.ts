@@ -1,39 +1,36 @@
-import { useEffect, useState } from 'react';
-import { presenceApi, getUserInfo, isUserLoggedIn } from '@/services/api';
+import { useEffect } from 'react';
+import { presenceApi } from '@/services/api';
 
 const HEARTBEAT_INTERVAL = 20_000;
+const ANON_SESSION_KEY = 'aigc_anon_session_id';
+
+function getOrCreateAnonSessionId(): string {
+  let sessionId = localStorage.getItem(ANON_SESSION_KEY);
+  if (!sessionId) {
+    sessionId = crypto.randomUUID();
+    localStorage.setItem(ANON_SESSION_KEY, sessionId);
+  }
+  return sessionId;
+}
 
 /**
- * Global presence heartbeat hook (user-scoped).
+ * Global presence heartbeat hook.
  *
- * Only registers / heartbeats when a user is logged in. Anonymous visitors
- * are not counted toward the online user total. Reacts to login/logout via
- * the custom `aigc-auth-change` event dispatched by setUserAuth/clearUserAuth.
+ * Uses anonymous session-based heartbeat for all visitors (both logged-in
+ * and anonymous). Each browser generates a persistent session ID that is
+ * used to track online presence via TTL-based Redis keys.
  */
 export function usePresence() {
-  const [userId, setUserId] = useState<string | null>(() => getUserInfo()?.id ?? null);
-
   useEffect(() => {
-    const sync = () => setUserId(getUserInfo()?.id ?? null);
-    window.addEventListener('aigc-auth-change', sync);
-    window.addEventListener('storage', sync);
-    return () => {
-      window.removeEventListener('aigc-auth-change', sync);
-      window.removeEventListener('storage', sync);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!userId || !isUserLoggedIn()) return;
-
-    presenceApi.register().catch(() => {});
+    const anonSessionId = getOrCreateAnonSessionId();
+    presenceApi.anonymousHeartbeat(anonSessionId).catch(() => {});
     const interval = setInterval(() => {
-      presenceApi.heartbeat().catch(() => {});
+      presenceApi.anonymousHeartbeat(anonSessionId).catch(() => {});
     }, HEARTBEAT_INTERVAL);
 
     return () => {
       clearInterval(interval);
-      // Backend TTL will expire the entry naturally if the user closes the tab.
+      // Backend TTL will expire the entry naturally when the user closes the tab.
     };
-  }, [userId]);
+  }, []);
 }

@@ -179,16 +179,8 @@ export const taskApi = {
 // ---------------------------------------------------------------------------
 
 export const presenceApi = {
-  register: async (): Promise<void> => {
-    await api.post('/presence/register');
-  },
-
-  heartbeat: async (): Promise<void> => {
-    await api.post('/presence/heartbeat');
-  },
-
-  unregister: async (): Promise<void> => {
-    await api.delete('/presence/unregister');
+  anonymousHeartbeat: async (sessionId: string): Promise<void> => {
+    await api.post('/presence/anonymous/heartbeat', { session_id: sessionId });
   },
 
   getOnline: async (): Promise<OnlineResponse> => {
