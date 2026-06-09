@@ -437,7 +437,7 @@ export const HomePage: React.FC = () => {
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
                 letterSpacing: 0,
               }}>
-                NeoCockpit
+                Neocockpit
               </h2>
               {currentUser ? (
                 <UserMenu
