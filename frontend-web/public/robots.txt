@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Allow: /tasks
+Allow: /profile
+Disallow: /api/
+Disallow: /admin/
+
+# Sitemap
+Sitemap: https://neocockpit.cn/sitemap.xml
+
+# Crawl-delay
+Crawl-delay: 1

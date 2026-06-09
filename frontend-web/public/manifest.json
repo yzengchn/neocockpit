@@ -1,0 +1,28 @@
+{
+  "name": "Neocockpit - AI生成壁纸和主题",
+  "short_name": "Neocockpit",
+  "description": "AI一键生成车载壁纸、主题、数字人",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#08090d",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["design", "graphics", "utilities"],
+  "screenshots": [],
+  "lang": "zh-CN",
+  "dir": "ltr"
+}
