@@ -40,8 +40,8 @@
   --shadow-glow-accent: 0 0 12px rgba(6, 182, 212, 0.1);
 
   /* ── Fonts ── */
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', 'Hiragino Sans GB', sans-serif;
-  --font-mono: 'Consolas', 'Monaco', 'Courier New', monospace;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI Variable', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'Consolas', 'SF Mono', 'Monaco', 'Courier New', monospace;
 
   /* ── Transitions ── */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -56,6 +56,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   font-weight: 400;
+  font-feature-settings: 'kern' 1;
   overflow-x: hidden;
   background: var(--c-bg);
   color: var(--c-text);
@@ -295,8 +296,9 @@ h1, h2, h3, h4, h5, h6,
 .ant-typography h4,
 .ant-typography h5,
 .ant-typography h6 {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif !important;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI Variable', 'Segoe UI', sans-serif !important;
   font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
 }
 
 /* ── Selection ─────────────────────────────────── */
