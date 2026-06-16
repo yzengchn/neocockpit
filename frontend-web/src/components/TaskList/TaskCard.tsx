@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, Tag, Typography, Space } from 'antd';
-import { UserOutlined, BulbOutlined, HeartFilled, PictureOutlined, EyeOutlined, AppstoreOutlined } from '@ant-design/icons';
+import { EyeOutlined, HeartFilled } from '@ant-design/icons';
 import { TaskListItem, TaskType } from '@/types/task';
+import { TASK_TYPE_CONFIG } from '@/constants/taskType';
 import { toResourceUrl } from '@/utils/url';
 import { statusConfig } from '@/constants/status';
 import dayjs from 'dayjs';
@@ -22,14 +23,20 @@ interface TaskCardProps {
 export const TaskCard = React.memo<TaskCardProps>(({ task, showLikes = false }) => {
   const cfg = statusConfig[task.status];
   const [hover, setHover] = useState(false);
+  const typeConfig = TASK_TYPE_CONFIG[task.task_type];
   const isDigitalHuman = task.task_type === TaskType.DIGITAL_HUMAN;
-  const isDIY = task.task_type === TaskType.DIY;
-  const isWallpaper = task.task_type === TaskType.WALLPAPER;
-  const isTheme = task.task_type === TaskType.THEME;
   const coverImageUrl = toResourceUrl(
     isDigitalHuman ? (task.avatar_image_url || '') : (task.background_image_url || task.preview_image_url || ''),
   );
   const hasImage = Boolean(coverImageUrl);
+  const typeIcon = React.cloneElement(typeConfig.icon as React.ReactElement<{ style?: React.CSSProperties }>, {
+    style: {
+      fontSize: 36,
+      color: typeConfig.accent,
+      opacity: 0.6,
+      filter: `drop-shadow(0 0 12px ${typeConfig.accent}50)`,
+    },
+  });
   const taskHref = `/tasks/${task.task_id}`;
 
   return (
@@ -72,31 +79,7 @@ export const TaskCard = React.memo<TaskCardProps>(({ task, showLikes = false }) 
             />
           ) : (
             <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {isDigitalHuman ? (
-                <UserOutlined style={{
-                  fontSize: 36, color: cfg.color, opacity: 0.6,
-                  filter: `drop-shadow(0 0 12px ${cfg.color}50)`,
-                }} />
-              ) : isWallpaper ? (
-                <PictureOutlined style={{
-                  fontSize: 36, color: '#34d399', opacity: 0.6,
-                  filter: `drop-shadow(0 0 12px ${cfg.color}50)`,
-                }} />
-              ) : isTheme ? (
-                <AppstoreOutlined style={{
-                  fontSize: 36, color: '#06b6d4', opacity: 0.6,
-                  filter: `drop-shadow(0 0 12px ${cfg.color}50)`,
-                }} />
-              ) : isDIY ? (
-                <BulbOutlined style={{
-                  fontSize: 36, color: '#f59e0b', opacity: 0.6,
-                  filter: `drop-shadow(0 0 12px ${cfg.color}50)`,
-                }} />
-              ) : (
-                React.cloneElement(cfg.icon as React.ReactElement, {
-                  style: { fontSize: 36, color: cfg.color, opacity: 0.6, filter: `drop-shadow(0 0 12px ${cfg.color}50)` },
-                })
-              )}
+              {typeIcon}
             </div>
           )}
 
@@ -128,40 +111,20 @@ export const TaskCard = React.memo<TaskCardProps>(({ task, showLikes = false }) 
             paddingTop: 10, borderTop: '1px solid var(--c-border)',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+              <Tag className="neon-tag" style={{
+                background: typeConfig.gradient,
+                color: '#fff',
+                margin: 0,
+              }}>
+                {typeConfig.label}
+              </Tag>
               {isDigitalHuman && (
                 <Tag className="neon-tag" style={{
                   background: 'linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%)',
                   color: '#fff',
                   margin: 0,
                 }}>
-                  <UserOutlined style={{ fontSize: 10 }} /> 数字人
-                </Tag>
-              )}
-              {isTheme && (
-                <Tag className="neon-tag" style={{
-                  background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
-                  color: '#fff',
-                  margin: 0,
-                }}>
-                  <AppstoreOutlined style={{ fontSize: 10 }} /> 主题
-                </Tag>
-              )}
-              {isDIY && (
-                <Tag className="neon-tag" style={{
-                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                  color: '#fff',
-                  margin: 0,
-                }}>
-                  <BulbOutlined style={{ fontSize: 10 }} /> DIY生图
-                </Tag>
-              )}
-              {isWallpaper && (
-                <Tag className="neon-tag" style={{
-                  background: 'linear-gradient(135deg, #34d399 0%, #10b981 100%)',
-                  color: '#fff',
-                  margin: 0,
-                }}>
-                  <PictureOutlined style={{ fontSize: 10 }} /> 壁纸
+                  肖像
                 </Tag>
               )}
               {task.ai_provider && (

@@ -30,6 +30,7 @@ export enum TaskType {
   THEME = 'theme',
   DIGITAL_HUMAN = 'digital_human',
   DIY = 'diy',
+  STICKER_PACK = 'sticker_pack',
 }
 
 export enum AIProvider {
@@ -325,6 +326,7 @@ export const ACTION_LABELS: Record<string, string> = {
   wallpaper: '车载壁纸',
   theme: '车载主题',
   digital_human: '数字人形象',
+  sticker_pack: '贴纸包',
   diy: 'DIY生图',
   download: '打包下载',
   recharge: '充值',

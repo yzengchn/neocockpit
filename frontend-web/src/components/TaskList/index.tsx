@@ -3,6 +3,7 @@ import { Row, Col, Spin, Empty } from 'antd';
 import { FireFilled, HeartFilled } from '@ant-design/icons';
 import { TaskCard } from './TaskCard';
 import { TaskListItem, TaskType } from '@/types/task';
+import { TASK_TYPE_CONFIG } from '@/constants/taskType';
 
 
 
@@ -39,10 +40,36 @@ export const TaskList: React.FC<TaskListProps> = ({
     count: number;
     accent: string;
   }> = [
-    { key: TaskType.WALLPAPER, label: '壁纸', count: counts[TaskType.WALLPAPER], accent: '#34d399' },
-    { key: TaskType.THEME, label: '车载主题', count: counts[TaskType.THEME], accent: '#22d3ee' },
-    { key: TaskType.DIGITAL_HUMAN, label: '数字人', count: counts[TaskType.DIGITAL_HUMAN], accent: '#a78bfa' },
-    { key: TaskType.DIY, label: 'DIY生图', count: counts[TaskType.DIY], accent: '#f59e0b' },
+    {
+      key: TaskType.WALLPAPER,
+      label: TASK_TYPE_CONFIG[TaskType.WALLPAPER].filterLabel,
+      count: counts[TaskType.WALLPAPER],
+      accent: TASK_TYPE_CONFIG[TaskType.WALLPAPER].accent,
+    },
+    {
+      key: TaskType.THEME,
+      label: TASK_TYPE_CONFIG[TaskType.THEME].filterLabel,
+      count: counts[TaskType.THEME],
+      accent: TASK_TYPE_CONFIG[TaskType.THEME].accent,
+    },
+    {
+      key: TaskType.DIGITAL_HUMAN,
+      label: TASK_TYPE_CONFIG[TaskType.DIGITAL_HUMAN].filterLabel,
+      count: counts[TaskType.DIGITAL_HUMAN],
+      accent: TASK_TYPE_CONFIG[TaskType.DIGITAL_HUMAN].accent,
+    },
+    {
+      key: TaskType.STICKER_PACK,
+      label: TASK_TYPE_CONFIG[TaskType.STICKER_PACK].filterLabel,
+      count: counts[TaskType.STICKER_PACK],
+      accent: TASK_TYPE_CONFIG[TaskType.STICKER_PACK].accent,
+    },
+    {
+      key: TaskType.DIY,
+      label: TASK_TYPE_CONFIG[TaskType.DIY].filterLabel,
+      count: counts[TaskType.DIY],
+      accent: TASK_TYPE_CONFIG[TaskType.DIY].accent,
+    },
     { key: 'all', label: '任务', count: counts.all, accent: '#6366f1' },
   ];
 
@@ -232,4 +259,4 @@ export const TaskList: React.FC<TaskListProps> = ({
     </div>
   );
 };
-export type TaskFilter = 'all' | 'likeRanking' | 'viewRanking' | TaskType.WALLPAPER | TaskType.THEME | TaskType.DIGITAL_HUMAN | TaskType.DIY;
+export type TaskFilter = 'all' | 'likeRanking' | 'viewRanking' | TaskType.WALLPAPER | TaskType.THEME | TaskType.DIGITAL_HUMAN | TaskType.STICKER_PACK | TaskType.DIY;

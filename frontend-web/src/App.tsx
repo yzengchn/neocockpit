@@ -9,6 +9,7 @@ import '@/styles/global.css';
 
 const TaskDetailPage = React.lazy(() => import('./pages/TaskDetailPage').then((module) => ({ default: module.TaskDetailPage })));
 const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
+const StickerEditorPage = React.lazy(() => import('./pages/StickerEditorPage').then((module) => ({ default: module.StickerEditorPage })));
 
 const RouteFallback: React.FC = () => (
   <div className="route-fallback">
@@ -75,7 +76,7 @@ const App: React.FC = () => {
       }}
     >
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <BaiduTongjiRouteTracker />
           <div className="app-shell">
             {/* grid background */}
@@ -120,6 +121,7 @@ const App: React.FC = () => {
                 <Routes>
                   <Route path="/" element={<HomePage />} />
                   <Route path="/tasks/:taskId" element={<TaskDetailPage />} />
+                  <Route path="/tasks/:taskId/sticker-editor" element={<StickerEditorPage />} />
                   <Route path="/profile" element={<ProfilePage />} />
                 </Routes>
               </React.Suspense>

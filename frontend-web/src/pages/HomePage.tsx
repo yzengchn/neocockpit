@@ -36,6 +36,7 @@ const TASK_TYPE_OPTIONS = [
   { label: '🖼️ 壁纸', value: TaskType.WALLPAPER },
   { label: '🚗 主题', value: TaskType.THEME },
   { label: '👤 数字人', value: TaskType.DIGITAL_HUMAN },
+  { label: '🎨 贴纸包', value: TaskType.STICKER_PACK },
   { label: '⚡ DIY生图', value: TaskType.DIY },
 ];
 
@@ -43,6 +44,7 @@ const TASK_CREATE_LABEL: Record<TaskType, string> = {
   [TaskType.WALLPAPER]: '壁纸任务',
   [TaskType.THEME]: '主题任务',
   [TaskType.DIGITAL_HUMAN]: '数字人任务',
+  [TaskType.STICKER_PACK]: '贴纸包任务',
   [TaskType.DIY]: 'DIY生图任务',
 };
 
@@ -122,6 +124,7 @@ export const HomePage: React.FC = () => {
   const [avatarForm] = Form.useForm<TaskCreate>();
   const [diyForm] = Form.useForm<TaskCreate>();
   const [wallpaperForm] = Form.useForm<TaskCreate>();
+  const [stickerForm] = Form.useForm<TaskCreate>();
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<TaskType>(TaskType.WALLPAPER);
   const [taskFilter, setTaskFilter] = useState<TaskFilter>('all');
@@ -330,7 +333,8 @@ export const HomePage: React.FC = () => {
     if (!avatarForm.getFieldValue('provider')) avatarForm.setFieldValue('provider', defaultValue);
     if (!diyForm.getFieldValue('provider')) diyForm.setFieldValue('provider', defaultValue);
     if (!wallpaperForm.getFieldValue('provider')) wallpaperForm.setFieldValue('provider', defaultValue);
-  }, [aiProviderList, themeForm, avatarForm, diyForm, wallpaperForm]);
+    if (!stickerForm.getFieldValue('provider')) stickerForm.setFieldValue('provider', defaultValue);
+  }, [aiProviderList, themeForm, avatarForm, diyForm, wallpaperForm, stickerForm]);
 
   /* ── Derived data ── */
   const statistics = useMemo(() => ({
@@ -347,6 +351,7 @@ export const HomePage: React.FC = () => {
     [TaskType.WALLPAPER]: taskStats?.by_type?.[TaskType.WALLPAPER] ?? 0,
     [TaskType.THEME]: taskStats?.by_type?.[TaskType.THEME] ?? 0,
     [TaskType.DIGITAL_HUMAN]: taskStats?.by_type?.[TaskType.DIGITAL_HUMAN] ?? 0,
+    [TaskType.STICKER_PACK]: taskStats?.by_type?.[TaskType.STICKER_PACK] ?? 0,
     [TaskType.DIY]: taskStats?.by_type?.[TaskType.DIY] ?? 0,
   }), [taskStats]);
 
@@ -383,7 +388,11 @@ export const HomePage: React.FC = () => {
       resetFormPreserveProvider(form);
       refetch();
       refetchTaskStats();
+
+      // 防抖：成功后禁用按钮 3 秒
+      setTimeout(() => setSubmitting(false), 3000);
     } catch (err: unknown) {
+      setSubmitting(false);
       if (getApiErrorStatus(err) === 401) {
         setAuthModalOpen(true);
         message.warning(getApiErrorDetail(err) || '请先登录后再创建任务');
@@ -392,8 +401,6 @@ export const HomePage: React.FC = () => {
       } else {
         message.error('任务创建失败');
       }
-    } finally {
-      setSubmitting(false);
     }
   }, [currentUser, getCreditPrice, queryClient, refetch, refetchTaskStats, resetFormPreserveProvider]);
 
@@ -413,6 +420,10 @@ export const HomePage: React.FC = () => {
   const handleCreateWallpaperTask = useCallback((values: TaskCreate) => {
     createTask(values, { taskType: TaskType.WALLPAPER, form: wallpaperForm });
   }, [createTask, wallpaperForm]);
+
+  const handleCreateStickerTask = useCallback((values: TaskCreate) => {
+    createTask(values, { taskType: TaskType.STICKER_PACK, form: stickerForm });
+  }, [createTask, stickerForm]);
 
   const handleLoadMoreTasks = useCallback(() => {
     if (!hasNextPage || isFetchingNextPage) return;
@@ -569,6 +580,23 @@ export const HomePage: React.FC = () => {
                   <div className="home-create-card__hint" style={{ color: 'var(--c-text-muted)', fontSize: 12, letterSpacing: '0.3px', minHeight: 44, display: 'flex', alignItems: 'center' }}>
                     <BulbOutlined style={{ marginRight: 6 }} />
                     DIY 模式：直接输入提示词 → AI 生图，无 LLM 步骤
+                  </div>
+                  <div className="home-create-card__provider" style={{ position: 'absolute', bottom: 0, right: 0 }}>
+                    <ProviderField providers={aiProviderList} loading={submitting} />
+                  </div>
+                </Form>
+              </div>
+
+              {/* ── Sticker Pack form ── */}
+              <div style={{ display: activeTab === TaskType.STICKER_PACK ? 'contents' : 'none' }}>
+                <Form form={stickerForm} layout="vertical" onFinish={handleCreateStickerTask}>
+                  <Form.Item name="user_input"
+                    rules={[{ required: true, message: '请描述贴纸风格' }]}>
+                    <TextArea rows={6} maxLength={2000} showCount placeholder="描述贴纸风格，如：赛车风格贴纸包，包含火焰、闪电、骷髅、方格旗等元素，扁平化设计，鲜艳配色…" style={{ fontSize: 14 }} />
+                  </Form.Item>
+                  <div className="home-create-card__hint" style={{ color: 'var(--c-text-muted)', fontSize: 12, letterSpacing: '0.3px', minHeight: 44, display: 'flex', alignItems: 'center' }}>
+                    <AppstoreOutlined style={{ marginRight: 6 }} />
+                    AI 将生成：4-6个同风格贴纸 · 透明背景 · 3D预览编辑器
                   </div>
                   <div className="home-create-card__provider" style={{ position: 'absolute', bottom: 0, right: 0 }}>
                     <ProviderField providers={aiProviderList} loading={submitting} />

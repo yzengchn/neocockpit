@@ -9,6 +9,7 @@ import { LikeSection } from '@/components/TaskDetail/LikeSection';
 import { CommentSection } from '@/components/TaskDetail/CommentSection';
 import { BuildTreeViewer } from '@/components/BuildTree';
 import { ImagePreview } from '@/components/ImagePreview';
+import { StickerPackPreview } from '@/components/StickerPackPreview';
 import AuthModal from '@/components/AuthModal';
 import { taskApi, userApi, setUserAuth } from '@/services/api';
 import { useIdleDetector } from '@/hooks/useIdleDetector';
@@ -16,6 +17,7 @@ import { getUserInfo, isUserLoggedIn } from '@/services/api';
 import { TaskStatus, TaskType, isActiveTaskStatus } from '@/types/task';
 import type { BuildTree, BuildTreeNode, Task } from '@/types/task';
 import { statusConfig } from '@/constants/status';
+import { TASK_TYPE_CONFIG } from '@/constants/taskType';
 import { glassCardOverflow } from '@/constants/styles';
 
 const { Text, Paragraph } = Typography;
@@ -90,6 +92,7 @@ export const TaskDetailPage: React.FC = () => {
   const [previewViewMode, setPreviewViewMode] = useState<'single' | 'grid'>('single');
   const [downloading, setDownloading] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [retryDisabled, setRetryDisabled] = useState(false);
   const { isIdle } = useIdleDetector();
 
   const queryClient = useQueryClient();
@@ -108,6 +111,25 @@ export const TaskDetailPage: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['task', taskId] });
       queryClient.invalidateQueries({ queryKey: ['fileTree', taskId] });
+      queryClient.invalidateQueries({ queryKey: ['my-credits'] });
+      // 防抖：成功后禁用按钮 3 秒
+      setRetryDisabled(true);
+      setTimeout(() => setRetryDisabled(false), 3000);
+    },
+    onError: (error: any) => {
+      const status = error?.response?.status;
+      const detail = error?.response?.data?.detail;
+
+      if (status === 401) {
+        message.warning('请先登录');
+        setAuthModalOpen(true);
+      } else if (status === 402) {
+        message.error(detail || '积分不足');
+      } else if (status === 403) {
+        message.error('只有任务创建者才能再次生成');
+      } else {
+        message.error('操作失败，请稍后重试');
+      }
     },
   });
 
@@ -196,6 +218,8 @@ export const TaskDetailPage: React.FC = () => {
   const dh = task.task_type === TaskType.DIGITAL_HUMAN;
   const diy = task.task_type === TaskType.DIY;
   const wallpaper = task.task_type === TaskType.WALLPAPER;
+  const stickerPack = task.task_type === TaskType.STICKER_PACK;
+  const taskTypeConfig = TASK_TYPE_CONFIG[task.task_type];
   const cfg = statusConfig[task.status] || statusConfig[TaskStatus.QUEUED];
   const isTaskActive = isActiveTaskStatus(task.status);
   const portraitMeshUrl = dh && task.status === TaskStatus.COMPLETED
@@ -288,19 +312,36 @@ export const TaskDetailPage: React.FC = () => {
                 } as React.CSSProperties}
               />
             )}
-            <Tag style={{
-              background: dh
-                ? 'linear-gradient(135deg, #a78bfa 0%, #6366f1 100%)'
-                : wallpaper
-                ? 'linear-gradient(135deg, #34d399 0%, #06b6d4 100%)'
-                : diy
-                ? 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)'
-                : 'linear-gradient(135deg, var(--c-primary) 0%, var(--c-accent) 100%)',
-              color: '#fff', border: 'none', borderRadius: 'var(--radius-xs)',
-              fontWeight: 700, fontSize: 11,
-            }}>
-              {dh ? '数字人' : wallpaper ? '壁纸' : diy ? 'DIY生图' : '主题'}
-            </Tag>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Tag style={{
+                background: taskTypeConfig.gradient,
+                color: '#fff', border: 'none', borderRadius: 'var(--radius-xs)',
+                fontWeight: 700, fontSize: 11,
+              }}>
+                {taskTypeConfig.label}
+              </Tag>
+
+              {diy && task.status === TaskStatus.COMPLETED && isOwnTask && (
+                <Button
+                  type="primary"
+                  icon={<RedoOutlined />}
+                  size="small"
+                  loading={retryMutation.isPending}
+                  disabled={retryDisabled || retryMutation.isPending}
+                  onClick={() => retryMutation.mutate()}
+                  style={{
+                    background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
+                    border: 'none',
+                    borderRadius: 'var(--radius-xs)',
+                    fontWeight: 700,
+                    fontSize: 11,
+                    height: 28,
+                  }}
+                >
+                  再次生成
+                </Button>
+              )}
+            </div>
 
             {task.status === TaskStatus.FAILED && (
               <Button
@@ -308,6 +349,7 @@ export const TaskDetailPage: React.FC = () => {
                 icon={<RedoOutlined />}
                 size="small"
                 loading={retryMutation.isPending}
+                disabled={retryDisabled || retryMutation.isPending}
                 onClick={() => retryMutation.mutate()}
                 style={{
                   marginTop: 12,
@@ -422,8 +464,8 @@ export const TaskDetailPage: React.FC = () => {
                 )}
 
                 {/* Avatar / Background prompt (skip for DIY - user input is the prompt) */}
-                {/* Background prompt (theme only — digital_human uses dedicated view prompt cards below) */}
-                {task.background_prompt && !diy && !dh && !wallpaper && (
+                {/* Background prompt (theme only — digital_human uses dedicated view prompt cards below; sticker_pack has its own block) */}
+                {task.background_prompt && !diy && !dh && !wallpaper && !stickerPack && (
                   <div style={{
                     position: "relative",
                     borderRadius: "var(--radius-md)",
@@ -501,8 +543,36 @@ export const TaskDetailPage: React.FC = () => {
                   </div>
                 )}
 
+                {/* Sticker pack: AI-generated design prompts */}
+                {stickerPack && task.background_prompt && (
+                  <div style={{
+                    position: "relative",
+                    borderRadius: "var(--radius-md)",
+                    background: "linear-gradient(135deg, rgba(244,114,182,0.06) 0%, rgba(244,114,182,0.02) 100%)",
+                    border: "1px solid rgba(244,114,182,0.18)",
+                    padding: 20,
+                    overflow: "hidden",
+                  }}>
+                    <div style={{
+                      position: "absolute", top: 0, left: 0, width: 3, height: "100%",
+                      background: "linear-gradient(180deg, #f472b6, #ec4899)",
+                      borderRadius: "3px 0 0 3px",
+                    }} />
+                    <Text style={{ fontSize: 12, display: "flex", alignItems: "center", marginBottom: 10, color: "#f472b6", fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase" }}>
+                      <SkinOutlined style={{ marginRight: 6 }} />
+                      贴纸设计提示词
+                    </Text>
+                    <Paragraph style={{
+                      fontSize: 13, lineHeight: 1.9, color: "var(--c-text)",
+                      whiteSpace: "pre-wrap", wordBreak: "break-word", marginBottom: 0,
+                    }}>
+                      {task.background_prompt}
+                    </Paragraph>
+                  </div>
+                )}
+
                 {/* Texture / Icon prompt (skip for DIY) */}
-                {task.icon_prompt && !diy && (
+                {task.icon_prompt && !diy && !stickerPack && (
                   <div style={{
                     position: "relative",
                     borderRadius: "var(--radius-md)",
@@ -619,38 +689,40 @@ export const TaskDetailPage: React.FC = () => {
           className="task-detail-page__resource-card"
           title={
             <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--c-text-secondary)' }}>
-              资源包
+              {stickerPack ? '3D 编辑器' : '资源包'}
             </span>
           }
           extra={
-            <Button
-              type="primary"
-              icon={<DownloadOutlined />}
-              size="small"
-              loading={downloading}
-              className="neon-btn"
-              onClick={async () => {
-                if (!isLoggedIn) {
-                  setAuthModalOpen(true);
-                  return;
-                }
-                if (downloading) return;
-                setDownloading(true);
-                try {
-                  const ticket = await taskApi.downloadZip(task.task_id);
-                  if (ticket.charged && ticket.credits_cost > 0) message.success('下载已开始（消耗' + ticket.credits_cost + '积分）');
-                  else message.success('下载已开始');
-                  if (ticket.charged) queryClient.invalidateQueries({ queryKey: ['my-credits'] });
-                } finally { setDownloading(false); }
-              }}
-            >
-              打包下载{(() => {
-                if (isOwnTask) return '';
-                const p = creditPrices?.find(c => c.action === 'download');
-                if (p && p.price > 0) return ` (${p.price}积分)`;
-                return '';
-              })()}
-            </Button>
+            !stickerPack && (
+              <Button
+                type="primary"
+                icon={<DownloadOutlined />}
+                size="small"
+                loading={downloading}
+                className="neon-btn"
+                onClick={async () => {
+                  if (!isLoggedIn) {
+                    setAuthModalOpen(true);
+                    return;
+                  }
+                  if (downloading) return;
+                  setDownloading(true);
+                  try {
+                    const ticket = await taskApi.downloadZip(task.task_id);
+                    if (ticket.charged && ticket.credits_cost > 0) message.success('下载已开始（消耗' + ticket.credits_cost + '积分）');
+                    else message.success('下载已开始');
+                    if (ticket.charged) queryClient.invalidateQueries({ queryKey: ['my-credits'] });
+                  } finally { setDownloading(false); }
+                }}
+              >
+                打包下载{(() => {
+                  if (isOwnTask) return '';
+                  const p = creditPrices?.find(c => c.action === 'download');
+                  if (p && p.price > 0) return ` (${p.price}积分)`;
+                  return '';
+                })()}
+              </Button>
+            )
           }
           style={{
             ...glassCardOverflow,
@@ -660,30 +732,33 @@ export const TaskDetailPage: React.FC = () => {
             WebkitBackdropFilter: 'none',
           }}
           styles={{
-            body: { padding: 24 },
+            body: { padding: stickerPack ? 0 : 24 },
             header: { borderBottom: '1px solid var(--c-border)' },
           }}
         >
-          <Row className="task-detail-page__resource-row" gutter={[2, 20]} style={{ alignItems: 'flex-start' }}>
-            <Col xs={24} md={7}>
-              <div className="task-detail-page__build-tree" style={{ background: 'var(--c-bg-card)', borderRadius: 'var(--radius-md)', padding: 2, maxHeight: 520, overflowY: 'auto' }}>
-                <BuildTreeViewer buildTree={fileTree} onSelect={handleSelectFile} />
-              </div>
-            </Col>
-            <Col xs={24} md={17}>
-              <ImagePreview
-                imagePath={previewImagePath}
-                images={filteredBuildImages}
-                onSelectImage={(path) => setSelectedImagePath(path)}
-                autoPreview
-                viewMode={previewViewMode}
-                onViewModeChange={setPreviewViewMode}
-              />
-            </Col>
-          </Row>
+          {stickerPack ? (
+            <StickerPackPreview buildImages={allBuildImages} />
+          ) : (
+            <Row className="task-detail-page__resource-row" gutter={[2, 20]} style={{ alignItems: 'flex-start' }}>
+              <Col xs={24} md={7}>
+                <div className="task-detail-page__build-tree" style={{ background: 'var(--c-bg-card)', borderRadius: 'var(--radius-md)', padding: 2, maxHeight: 520, overflowY: 'auto' }}>
+                  <BuildTreeViewer buildTree={fileTree} onSelect={handleSelectFile} />
+                </div>
+              </Col>
+              <Col xs={24} md={17}>
+                <ImagePreview
+                  imagePath={previewImagePath}
+                  images={filteredBuildImages}
+                  onSelectImage={(path) => setSelectedImagePath(path)}
+                  autoPreview
+                  viewMode={previewViewMode}
+                  onViewModeChange={setPreviewViewMode}
+                />
+              </Col>
+            </Row>
+          )}
         </Card>
       )}
-
       {/* ── Like + comments (only for completed tasks) ── */}
       {task?.status === TaskStatus.COMPLETED && taskId && (
         <div className="task-detail-page__social-row" style={{

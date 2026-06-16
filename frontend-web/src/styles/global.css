@@ -66,9 +66,24 @@ code { font-family: var(--font-mono); }
 
 #root {
   min-height: 100vh;
+  width: 100%;
   position: relative;
   transform: translateZ(0);
   backface-visibility: hidden;
+}
+
+.app-shell {
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: clip;
+}
+
+.web-page-shell {
+  --page-shell-width: min(1200px, calc(100% - 48px));
+  width: var(--page-shell-width);
+  max-width: none !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
 }
 
 /* ── Scrollbar ──────────────────────────────────── */
@@ -419,6 +434,8 @@ h1, h2, h3, h4, h5, h6,
 @media (max-width: 768px) {
   .web-page-shell {
     width: 100%;
+    margin-left: auto !important;
+    margin-right: auto !important;
     padding-left: 16px !important;
     padding-right: 16px !important;
   }
