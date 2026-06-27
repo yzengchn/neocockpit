@@ -60,12 +60,12 @@ api.interceptors.response.use(
 
 export const authApi = {
   login: async (username: string, password: string): Promise<{ token: string }> => {
-    const response = await api.post<{ token: string }>('/auth/login', { username, password });
+    const response = await api.post<{ token: string }>('/admin/auth/login', { username, password });
     return response.data;
   },
 
   verify: async (token: string): Promise<boolean> => {
-    const response = await api.get<{ valid: boolean }>('/auth/verify', {
+    const response = await api.get<{ valid: boolean }>('/admin/auth/verify', {
       params: { token },
     });
     return response.data.valid;
@@ -78,12 +78,12 @@ export const authApi = {
 
 export const taskApi = {
   createTask: async (data: TaskCreate): Promise<Task> => {
-    const response = await api.post<Task>('/tasks/', data);
+    const response = await api.post<Task>('/tasks', data);
     return response.data;
   },
 
   listTasks: async (skip = 0, limit = 200, taskType?: TaskType): Promise<Task[]> => {
-    const response = await api.get<Task[]>('/tasks/', {
+    const response = await api.get<Task[]>('/tasks', {
       params: { skip, limit, ...(taskType ? { task_type: taskType } : {}) },
     });
     return response.data;

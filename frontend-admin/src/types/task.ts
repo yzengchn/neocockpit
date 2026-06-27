@@ -143,11 +143,6 @@ export interface PresenceUnregisterRequest {
   session_id: string;
 }
 
-export interface OnlineResponse {
-  total: number;
-  paths: Record<string, number>;
-}
-
 // Icon description config types
 
 export interface IconDescription {
@@ -380,6 +375,7 @@ export interface ImageChannel {
   weight: number;
   enabled: boolean;
   invoke_count: number;
+  failure_count: number;
   extra_config?: Record<string, unknown> | null;
 }
 

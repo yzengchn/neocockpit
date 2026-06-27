@@ -42,7 +42,7 @@ import type {
 
 export const adminTaskApi = {
   listTasks: async (skip = 0, limit = 200): Promise<Task[]> => {
-    const res = await api.get<Task[]>('/admin/tasks/', { params: { skip, limit } });
+    const res = await api.get<Task[]>('/admin/tasks', { params: { skip, limit } });
     return res.data;
   },
 
@@ -60,12 +60,12 @@ export const adminTaskApi = {
 
 export const adminProviderApi = {
   listAll: async (): Promise<AIProviderConfig[]> => {
-    const res = await api.get<AIProviderConfig[]>('/admin/providers/');
+    const res = await api.get<AIProviderConfig[]>('/admin/providers');
     return res.data;
   },
 
   create: async (data: AIProviderConfigCreate): Promise<AIProviderConfig> => {
-    const res = await api.post<AIProviderConfig>('/admin/providers/', data);
+    const res = await api.post<AIProviderConfig>('/admin/providers', data);
     return res.data;
   },
 
@@ -83,12 +83,12 @@ export const adminProviderApi = {
 
 export const adminIconApi = {
   listAll: async (): Promise<IconDescription[]> => {
-    const res = await api.get<IconDescription[]>('/admin/icons/');
+    const res = await api.get<IconDescription[]>('/admin/icons');
     return res.data;
   },
 
   create: async (data: IconDescriptionCreate): Promise<IconDescription> => {
-    const res = await api.post<IconDescription>('/admin/icons/', data);
+    const res = await api.post<IconDescription>('/admin/icons', data);
     return res.data;
   },
 
@@ -152,7 +152,7 @@ export const adminDownloadApi = {
 
 export const adminCreditPriceApi = {
   list: async (): Promise<CreditPrice[]> => {
-    const res = await api.get<CreditPrice[]>('/admin/credit-prices/');
+    const res = await api.get<CreditPrice[]>('/admin/credit-prices');
     return res.data;
   },
 
@@ -162,7 +162,7 @@ export const adminCreditPriceApi = {
   },
 
   create: async (data: CreditPriceCreate): Promise<CreditPrice> => {
-    const res = await api.post<CreditPrice>('/admin/credit-prices/', data);
+    const res = await api.post<CreditPrice>('/admin/credit-prices', data);
     return res.data;
   },
 
@@ -176,14 +176,14 @@ export const adminCreditPriceApi = {
 
 export const adminChannelApi = {
   listAll: async (provider?: string): Promise<ImageChannel[]> => {
-    const res = await api.get<ImageChannel[]>('/admin/channels/', {
+    const res = await api.get<ImageChannel[]>('/admin/channels', {
       params: { ...(provider ? { provider } : {}) },
     });
     return res.data;
   },
 
   create: async (data: ImageChannelCreate): Promise<ImageChannel> => {
-    const res = await api.post<ImageChannel>('/admin/channels/', data);
+    const res = await api.post<ImageChannel>('/admin/channels', data);
     return res.data;
   },
 
@@ -202,12 +202,12 @@ export const adminChannelApi = {
 
 export const adminNotificationApi = {
   listAll: async (): Promise<NotificationItem[]> => {
-    const res = await api.get<NotificationItem[]>('/admin/notifications/');
+    const res = await api.get<NotificationItem[]>('/admin/notifications');
     return res.data;
   },
 
   listAnnouncements: async (): Promise<NotificationItem[]> => {
-    const res = await api.get<NotificationItem[]>('/admin/notifications/', {
+    const res = await api.get<NotificationItem[]>('/admin/notifications', {
       params: { message_type: 'announcement' },
     });
     return res.data;
@@ -221,7 +221,7 @@ export const adminNotificationApi = {
   },
 
   create: async (data: NotificationCreate): Promise<NotificationItem> => {
-    const res = await api.post<NotificationItem>('/admin/notifications/', data);
+    const res = await api.post<NotificationItem>('/admin/notifications', data);
     return res.data;
   },
 
@@ -258,7 +258,7 @@ export interface FeedbackPageResponse {
 
 export const adminFeedbackApi = {
   list: async (page = 1, pageSize = 20): Promise<FeedbackPageResponse> => {
-    const res = await api.get<FeedbackPageResponse>('/admin/feedbacks/', {
+    const res = await api.get<FeedbackPageResponse>('/admin/feedbacks', {
       params: { page, page_size: pageSize },
     });
     return res.data;

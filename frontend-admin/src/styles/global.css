@@ -40,8 +40,8 @@
   --shadow-glow-accent: 0 0 20px rgba(6, 182, 212, 0.12);
 
   /* ── Fonts ── */
-  --font-sans: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI Variable', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'Consolas', 'SF Mono', 'Monaco', 'Courier New', monospace;
 
   /* ── Transitions ── */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -54,6 +54,9 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-weight: 400;
+  font-feature-settings: 'kern' 1;
   overflow-x: hidden;
   background: var(--c-bg);
   color: var(--c-text);
@@ -621,8 +624,9 @@ h1, h2, h3, h4, h5, h6,
 .ant-typography h4,
 .ant-typography h5,
 .ant-typography h6 {
-  font-family: 'Inter', 'Noto Sans SC', sans-serif !important;
-  font-weight: 700 !important;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI Variable', 'Segoe UI', sans-serif !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
 }
 
 /* ── Selection ─────────────────────────────────── */

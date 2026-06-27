@@ -198,13 +198,14 @@ export const ChannelPanel: React.FC = () => {
   };
 
   const providerStats = useMemo(() => {
-    const acc: Record<string, { maxConcurrent: number; count: number; invokeCount: number }> = {};
+    const acc: Record<string, { maxConcurrent: number; count: number; invokeCount: number; failureCount: number }> = {};
     for (const ch of items) {
       if (ch.enabled) {
-        if (!acc[ch.provider]) acc[ch.provider] = { maxConcurrent: 0, count: 0, invokeCount: 0 };
+        if (!acc[ch.provider]) acc[ch.provider] = { maxConcurrent: 0, count: 0, invokeCount: 0, failureCount: 0 };
         acc[ch.provider].maxConcurrent += ch.max_concurrent;
         acc[ch.provider].count += 1;
         acc[ch.provider].invokeCount += ch.invoke_count || 0;
+        acc[ch.provider].failureCount += ch.failure_count || 0;
       }
     }
     return acc;
@@ -223,6 +224,7 @@ export const ChannelPanel: React.FC = () => {
     { title: '并发', dataIndex: 'max_concurrent', key: 'max_concurrent', width: 60, align: 'center' },
     { title: '权重', dataIndex: 'weight', key: 'weight', width: 55, align: 'center' },
     { title: '调用', dataIndex: 'invoke_count', key: 'invoke_count', width: 60, align: 'center' },
+    { title: '失败', dataIndex: 'failure_count', key: 'failure_count', width: 60, align: 'center' },
     {
       title: '扩展配置', dataIndex: 'extra_config', key: 'extra_config', width: 140, ellipsis: true,
       render: (v: Record<string, unknown> | null | undefined) =>
@@ -266,12 +268,12 @@ export const ChannelPanel: React.FC = () => {
         <Space wrap>
           {Object.entries(providerStats).map(([provider, stat]) => (
             <Tag key={provider} icon={<ApiOutlined />} color="purple">
-              {PROVIDER_LABEL_MAP[provider] || provider}: {stat.count} 渠道 / 并发 {stat.maxConcurrent} / 调用 {stat.invokeCount}
+              {PROVIDER_LABEL_MAP[provider] || provider}: {stat.count} 渠道 / 并发 {stat.maxConcurrent} / 调用 {stat.invokeCount} / 失败 {stat.failureCount}
             </Tag>
           ))}
         </Space>
       </div>
-      <Table className="admin-table" columns={columns} dataSource={items} rowKey="id" loading={isLoading} pagination={false} size="small" scroll={{ x: 1060 }} />
+      <Table className="admin-table" columns={columns} dataSource={items} rowKey="id" loading={isLoading} pagination={false} size="small" scroll={{ x: 1120 }} />
       <ChannelModal open={modalOpen} editing={editing} onOk={handleOk} onCancel={() => { setModalOpen(false); setEditing(null); }} />
     </>
   );
