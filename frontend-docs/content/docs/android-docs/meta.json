@@ -1,0 +1,9 @@
+{
+  "title": "Android 文档",
+  "description": "NeoCockpit Android Launcher 主题应用和 HMI 能力说明。",
+  "root": true,
+  "icon": "Smartphone",
+  "pages": [
+    "index"
+  ]
+}

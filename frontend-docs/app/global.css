@@ -1,0 +1,448 @@
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/ocean.css';
+@import 'fumadocs-ui/css/preset.css';
+
+@theme {
+  --color-fd-background: hsl(0 0% 98%);
+  --color-fd-foreground: hsl(0 0% 10%);
+  --color-fd-muted: hsl(48 18% 93%);
+  --color-fd-muted-foreground: hsl(0 0% 42%);
+  --color-fd-popover: hsl(0 0% 100%);
+  --color-fd-popover-foreground: hsl(0 0% 10%);
+  --color-fd-card: hsl(0 0% 100%);
+  --color-fd-card-foreground: hsl(0 0% 10%);
+  --color-fd-border: hsl(0 0% 84% / 0.9);
+  --color-fd-primary: hsl(42 90% 42%);
+  --color-fd-primary-foreground: hsl(0 0% 7%);
+  --color-fd-secondary: hsl(48 18% 93%);
+  --color-fd-secondary-foreground: hsl(0 0% 13%);
+  --color-fd-accent: hsl(43 72% 90%);
+  --color-fd-accent-foreground: hsl(35 82% 30%);
+  --color-fd-ring: hsl(42 90% 42%);
+}
+
+:root,
+html.light {
+  color-scheme: light;
+  --color-fd-background: hsl(0 0% 98%);
+  --color-fd-foreground: hsl(0 0% 10%);
+  --color-fd-muted: hsl(48 18% 93%);
+  --color-fd-muted-foreground: hsl(0 0% 42%);
+  --color-fd-popover: hsl(0 0% 100%);
+  --color-fd-popover-foreground: hsl(0 0% 10%);
+  --color-fd-card: hsl(0 0% 100%);
+  --color-fd-card-foreground: hsl(0 0% 10%);
+  --color-fd-border: hsl(0 0% 84% / 0.9);
+  --color-fd-primary: hsl(42 90% 42%);
+  --color-fd-primary-foreground: hsl(0 0% 7%);
+  --color-fd-secondary: hsl(48 18% 93%);
+  --color-fd-secondary-foreground: hsl(0 0% 13%);
+  --color-fd-accent: hsl(43 72% 90%);
+  --color-fd-accent-foreground: hsl(35 82% 30%);
+  --color-fd-ring: hsl(42 90% 42%);
+  --color-fd-info: hsl(42 90% 42%);
+  --color-fd-warning: hsl(36 94% 46%);
+  --color-fd-success: hsl(142 60% 48%);
+  --color-fd-error: hsl(0 82% 58%);
+  --nc-bg: hsl(0 0% 98%);
+  --nc-sidebar: hsl(48 22% 94%);
+  --nc-panel: hsl(0 0% 100%);
+  --nc-card: hsl(0 0% 100%);
+  --nc-border: rgba(15, 15, 15, 0.1);
+  --nc-border-strong: rgba(15, 15, 15, 0.16);
+  --nc-text: hsl(0 0% 11%);
+  --nc-heading: hsl(0 0% 4%);
+  --nc-heading-2: hsl(0 0% 7%);
+  --nc-heading-3: hsl(0 0% 13%);
+  --nc-body: hsl(0 0% 18%);
+  --nc-muted: hsl(0 0% 42%);
+  --nc-strong: hsl(0 0% 7%);
+  --nc-link: hsl(38 92% 34%);
+  --nc-link-hover: hsl(34 92% 26%);
+  --nc-link-decoration: rgba(184, 122, 12, 0.42);
+  --nc-link-decoration-hover: rgba(184, 122, 12, 0.72);
+  --nc-code-bg: hsl(46 28% 92%);
+  --nc-code: hsl(34 92% 28%);
+  --nc-pre-bg: hsl(0 0% 12%);
+  --nc-pre-code: hsl(0 0% 88%);
+  --nc-quote: hsl(0 0% 20%);
+  --nc-table-head-bg: hsl(48 20% 92%);
+  --nc-row-hover: rgba(15, 15, 15, 0.035);
+  --nc-layout-overlay: rgba(250, 250, 250, 0.88);
+  --nc-main-shadow: rgba(0, 0, 0, 0.08);
+  --nc-sidebar-rail: rgba(0, 0, 0, 0.08);
+  --nc-interactive-hover: rgba(0, 0, 0, 0.055);
+  --nc-icon-muted: hsl(0 0% 45%);
+  --nc-icon-hover: hsl(0 0% 22%);
+  --nc-panel-shadow: 0 14px 34px rgba(0, 0, 0, 0.12);
+  --nc-lime: hsl(42 90% 42%);
+  --nc-lime-soft: hsl(43 72% 90%);
+}
+
+html.dark {
+  color-scheme: dark;
+  --color-fd-background: hsl(0 0% 7%);
+  --color-fd-foreground: hsl(0 0% 88%);
+  --color-fd-muted: hsl(0 0% 13%);
+  --color-fd-muted-foreground: hsl(0 0% 62%);
+  --color-fd-popover: hsl(0 0% 10%);
+  --color-fd-popover-foreground: hsl(0 0% 88%);
+  --color-fd-card: hsl(0 0% 12%);
+  --color-fd-card-foreground: hsl(0 0% 88%);
+  --color-fd-border: hsl(0 0% 22% / 0.82);
+  --color-fd-primary: hsl(58 96% 66%);
+  --color-fd-primary-foreground: hsl(0 0% 7%);
+  --color-fd-secondary: hsl(0 0% 15%);
+  --color-fd-secondary-foreground: hsl(0 0% 92%);
+  --color-fd-accent: hsl(58 30% 18%);
+  --color-fd-accent-foreground: hsl(58 96% 76%);
+  --color-fd-ring: hsl(58 96% 66%);
+  --color-fd-info: hsl(58 96% 66%);
+  --color-fd-warning: hsl(45 92% 64%);
+  --color-fd-success: hsl(142 60% 48%);
+  --color-fd-error: hsl(0 82% 66%);
+  --nc-bg: hsl(0 0% 7%);
+  --nc-sidebar: hsl(0 0% 10%);
+  --nc-panel: hsl(0 0% 13%);
+  --nc-card: hsl(0 0% 12%);
+  --nc-border: rgba(255, 255, 255, 0.1);
+  --nc-border-strong: rgba(255, 255, 255, 0.16);
+  --nc-text: hsl(0 0% 88%);
+  --nc-heading: hsl(0 0% 94%);
+  --nc-heading-2: hsl(0 0% 88%);
+  --nc-heading-3: hsl(0 0% 82%);
+  --nc-body: hsl(0 0% 74%);
+  --nc-muted: hsl(0 0% 62%);
+  --nc-strong: hsl(0 0% 86%);
+  --nc-link: hsl(52 76% 64%);
+  --nc-link-hover: hsl(52 82% 70%);
+  --nc-link-decoration: rgba(221, 204, 66, 0.42);
+  --nc-link-decoration-hover: rgba(221, 204, 66, 0.68);
+  --nc-code-bg: hsl(0 0% 15%);
+  --nc-code: hsl(58 96% 76%);
+  --nc-pre-bg: hsl(0 0% 9%);
+  --nc-pre-code: hsl(0 0% 78%);
+  --nc-quote: hsl(0 0% 78%);
+  --nc-table-head-bg: hsl(0 0% 13%);
+  --nc-row-hover: rgba(255, 255, 255, 0.035);
+  --nc-layout-overlay: rgba(18, 18, 18, 0.84);
+  --nc-main-shadow: rgba(255, 255, 255, 0.04);
+  --nc-sidebar-rail: rgba(255, 255, 255, 0.06);
+  --nc-interactive-hover: rgba(255, 255, 255, 0.055);
+  --nc-icon-muted: hsl(0 0% 56%);
+  --nc-icon-hover: hsl(0 0% 78%);
+  --nc-panel-shadow: 0 12px 34px rgba(0, 0, 0, 0.28);
+  --nc-lime: hsl(58 96% 66%);
+  --nc-lime-soft: rgba(221, 231, 66, 0.16);
+}
+
+html {
+  scrollbar-gutter: stable;
+  background: var(--nc-bg);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei UI', 'PingFang SC', 'Hiragino Sans GB',
+    'Noto Sans CJK SC', sans-serif;
+}
+
+body {
+  color: var(--nc-text);
+  background: var(--nc-bg);
+  background-image: none !important;
+}
+
+a {
+  text-underline-offset: 4px;
+}
+
+main h1,
+main h2,
+main h3 {
+  color: var(--nc-heading);
+  letter-spacing: 0;
+}
+
+main h1 {
+  font-weight: 760;
+}
+
+main h2 {
+  border-color: var(--nc-border);
+  color: var(--nc-heading-2);
+}
+
+main h3 {
+  color: var(--nc-heading-3);
+}
+
+main p,
+main li,
+main td,
+main figcaption {
+  color: var(--nc-body);
+}
+
+main strong {
+  color: var(--nc-strong);
+}
+
+main a {
+  color: var(--nc-link);
+  text-decoration-color: var(--nc-link-decoration);
+}
+
+main a:hover {
+  color: var(--nc-link-hover);
+  text-decoration-color: var(--nc-link-decoration-hover);
+}
+
+main img {
+  border: 1px solid var(--nc-border-strong);
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+main code:not(pre code) {
+  border: 1px solid var(--nc-border);
+  background: var(--nc-code-bg);
+  color: var(--nc-code);
+}
+
+main pre {
+  border: 1px solid var(--nc-border);
+  background: var(--nc-pre-bg) !important;
+  box-shadow: none;
+}
+
+main blockquote {
+  border-inline-start-color: var(--nc-lime) !important;
+  background: var(--nc-lime-soft);
+  border-radius: 0 8px 8px 0;
+  color: var(--nc-quote);
+  padding: 0.8rem 1rem;
+}
+
+main table {
+  border-color: var(--nc-border) !important;
+}
+
+main th {
+  background: var(--nc-table-head-bg);
+  color: var(--nc-strong);
+}
+
+main tr:hover td {
+  background: var(--nc-row-hover);
+}
+
+#nd-docs-layout {
+  background: var(--nc-bg) !important;
+}
+
+#nd-docs-layout main,
+#nd-docs-layout article,
+#nd-docs-layout [class*='grid-area:main'],
+#nd-docs-layout [class*='bg-fd-background'] {
+  background-color: var(--nc-bg) !important;
+  background-image: none !important;
+}
+
+#nd-docs-layout [class*='bg-fd-background/'] {
+  background-color: var(--nc-layout-overlay) !important;
+  background-image: none !important;
+}
+
+#nd-docs-layout .prose {
+  --tw-prose-body: var(--nc-body);
+  --tw-prose-headings: var(--nc-heading);
+  --tw-prose-lead: var(--nc-muted);
+  --tw-prose-links: var(--nc-link);
+  --tw-prose-bold: var(--nc-strong);
+  --tw-prose-counters: var(--nc-muted);
+  --tw-prose-bullets: var(--nc-muted);
+  --tw-prose-hr: var(--nc-border);
+  --tw-prose-quotes: var(--nc-quote);
+  --tw-prose-quote-borders: var(--nc-lime);
+  --tw-prose-captions: var(--nc-muted);
+  --tw-prose-code: var(--nc-code);
+  --tw-prose-pre-code: var(--nc-pre-code);
+  --tw-prose-pre-bg: var(--nc-pre-bg);
+  --tw-prose-th-borders: var(--nc-border-strong);
+  --tw-prose-td-borders: var(--nc-border);
+}
+
+#nd-docs-layout .prose :where(h1) {
+  color: var(--nc-heading);
+  font-weight: 700;
+}
+
+#nd-docs-layout .prose :where(h2) {
+  color: var(--nc-heading-2);
+  font-weight: 650;
+}
+
+#nd-docs-layout .prose :where(h3) {
+  color: var(--nc-heading-3);
+  font-weight: 600;
+}
+
+#nd-docs-layout .prose :where(p),
+#nd-docs-layout .prose :where(li),
+#nd-docs-layout .prose :where(td) {
+  color: var(--nc-body);
+  font-weight: 400;
+}
+
+#nd-docs-layout .prose :where(strong) {
+  color: var(--nc-strong);
+  font-weight: 600;
+}
+
+#nd-docs-layout .prose :where(a) {
+  color: var(--nc-link);
+  text-decoration-color: var(--nc-link-decoration);
+  text-decoration-thickness: 1px;
+  font-weight: 580;
+}
+
+#nd-docs-layout .prose :where(a:hover) {
+  color: var(--nc-link-hover);
+  text-decoration-color: var(--nc-link-decoration-hover);
+}
+
+#nd-docs-layout .prose :where(h1, h2, h3, h4, h5, h6) > a[data-card] {
+  color: inherit;
+  font-weight: inherit;
+  text-decoration: none;
+}
+
+#nd-docs-layout .prose :where(h1, h2, h3, h4, h5, h6) > a[data-card]:hover {
+  color: inherit;
+  text-decoration: none;
+}
+
+#nd-docs-layout .prose :where(hr) {
+  border-color: var(--nc-border);
+}
+
+#nd-docs-layout > [class*='grid-area:main'] {
+  box-shadow: inset 1px 0 var(--nc-main-shadow);
+}
+
+#nd-sidebar {
+  background: var(--nc-sidebar) !important;
+  border-color: var(--nc-border) !important;
+  box-shadow: none;
+}
+
+#nd-sidebar::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 1px;
+  background: var(--nc-sidebar-rail);
+}
+
+#nd-sidebar a,
+#nd-sidebar button {
+  transition: color 140ms ease, background 140ms ease, border-color 140ms ease;
+}
+
+#nd-sidebar a svg,
+#nd-sidebar button svg {
+  width: 15px;
+  height: 15px;
+  color: var(--nc-icon-muted);
+  stroke-width: 1.8;
+  transition: color 140ms ease, opacity 140ms ease;
+}
+
+#nd-sidebar a:hover,
+#nd-sidebar button:hover {
+  background: var(--nc-interactive-hover) !important;
+  color: var(--nc-text) !important;
+}
+
+#nd-sidebar a:hover svg,
+#nd-sidebar button:hover svg {
+  color: var(--nc-icon-hover);
+}
+
+#nd-sidebar [data-active='true'] {
+  background: var(--nc-lime-soft) !important;
+  color: var(--nc-lime) !important;
+  box-shadow: none;
+}
+
+#nd-sidebar [data-active='true'] svg {
+  color: var(--nc-lime) !important;
+}
+
+#nd-sidebar [data-active='true']::before {
+  background: var(--nc-lime) !important;
+}
+
+#nd-sidebar [class*='border'] {
+  border-color: var(--nc-border);
+}
+
+#nd-sidebar [class*='bg-fd-secondary'] {
+  background: var(--nc-panel) !important;
+}
+
+#nd-sidebar a:has(.nc-sidebar-brand-mark) {
+  min-width: 30px;
+  min-height: 30px;
+  padding: 2px !important;
+  border-radius: 8px;
+}
+
+#nd-sidebar a svg.nc-sidebar-brand-mark {
+  width: 26px !important;
+  height: 26px !important;
+  color: var(--nc-icon-muted);
+}
+
+#nd-sidebar a:hover svg.nc-sidebar-brand-mark {
+  color: var(--nc-icon-hover);
+}
+
+#nd-sidebar [data-theme-toggle] {
+  min-width: 58px;
+  min-height: 30px;
+  border-color: var(--nc-border-strong) !important;
+  background: var(--nc-interactive-hover) !important;
+}
+
+#nd-sidebar [data-theme-toggle] svg {
+  width: 26px !important;
+  height: 26px !important;
+  padding: 6px !important;
+  color: var(--nc-icon-muted) !important;
+}
+
+#nd-sidebar [data-theme-toggle] svg[class*='bg-fd-accent'] {
+  background: var(--nc-lime-soft) !important;
+  color: var(--nc-lime) !important;
+}
+
+[data-sidebar-panel] {
+  background: var(--nc-panel) !important;
+  border-color: var(--nc-border) !important;
+  box-shadow: var(--nc-panel-shadow) !important;
+}
+
+[data-sidebar-panel] button:hover {
+  background: var(--nc-interactive-hover) !important;
+}
+
+[class*='grid-area:toc'] {
+  color: var(--nc-muted);
+}
+
+[class*='grid-area:toc'] [data-active='true'] {
+  color: var(--nc-lime) !important;
+}
+
+html > body[data-scroll-locked] {
+  margin-right: 0px !important;
+  --removed-body-scroll-bar-size: 0px !important;
+}

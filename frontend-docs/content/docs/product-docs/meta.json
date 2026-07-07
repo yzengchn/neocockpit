@@ -1,0 +1,15 @@
+{
+  "title": "产品文档",
+  "description": "NeoCockpit 产品能力、创作流程和主题制作说明。",
+  "root": true,
+  "icon": "BookOpen",
+  "pages": [
+    "index",
+    "product",
+    "quick-use",
+    "asset-types",
+    "inspiration-publish",
+    "theme-package",
+    "vehicle-use"
+  ]
+}

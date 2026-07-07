@@ -1,0 +1,7 @@
+{
+  "title": "制作主题包",
+  "icon": "Palette",
+  "pages": [
+    "web-theme-editor-desktop"
+  ]
+}

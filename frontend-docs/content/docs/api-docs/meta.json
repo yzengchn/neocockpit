@@ -1,0 +1,9 @@
+{
+  "title": "API 文档",
+  "description": "NeoCockpit Web、主题包和 Android 市场接口说明。",
+  "root": true,
+  "icon": "Braces",
+  "pages": [
+    "index"
+  ]
+}
